@@ -1,0 +1,339 @@
+{
+  "name": "INTT Analytics — WhatsApp Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# INTT Analytics WhatsApp\n\n## Antes de ativar\n1. Crie credencial **OpenAI** no nó `OpenAI Chat Model`\n2. No n8n → Settings → Variables:\n   - `SUPABASE_URL` = `https://cltxkixvsfrokxdfpfga.supabase.co`\n   - `SUPABASE_SERVICE_ROLE_KEY` = sua service role key\n3. Copie a URL do webhook e conecte ao WhatsApp (Evolution / Bitrix / etc.)\n\n## Payload esperado (POST)\n```json\n{\n  \"message\": \"Qual o faturamento de junho?\",\n  \"phone\": \"5511999999999\",\n  \"name\": \"João\"\n}\n```\n\nTambém aceita campos: `text`, `from`, `body.message`, formato Evolution API.",
+        "height": 340,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-320, -80],
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Instruções"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intt-analytics-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 160],
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Webhook WhatsApp",
+      "webhookId": "intt-analytics-whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body ?? raw;\n\nconst message =\n  body.message ??\n  body.text ??\n  body.mensagem ??\n  body.data?.message?.conversation ??\n  body.data?.message?.extendedTextMessage?.text ??\n  '';\n\nlet phone =\n  body.phone ??\n  body.from ??\n  body.telefone ??\n  body.data?.key?.remoteJid ??\n  body.data?.Info?.Sender ??\n  '';\n\nphone = String(phone).replace('@s.whatsapp.net', '').replace(/\\D/g, '');\n\nconst name = body.name ?? body.pushName ?? body.data?.pushName ?? 'Usuário';\n\nif (!message) {\n  throw new Error('Campo message/text não encontrado no payload do webhook.');\n}\n\nreturn [{\n  json: {\n    message: String(message).trim(),\n    phone,\n    sessionId: phone || 'intt-default',\n    name: String(name).trim(),\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 160],
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Normalizar Entrada"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "Você é o assistente de analytics comercial da INTT. Consulta dados de vendas sincronizados do Mercos via ferramentas (tools).\n\nMétricas disponíveis:\n- Faturamento, pedidos, ticket médio e comparativo entre períodos\n- Ranking de vendedores e tempo de resposta WhatsApp\n- Revendedores ativos, inativos e com potencial de crescimento\n- Produtos mais vendidos, categorias e cross-sell\n- Recorrência, churn risk e LTV de clientes\n- Taxa de conversão WhatsApp → venda, objeções e motivos de perda\n\nRegras:\n- Responda SEMPRE em português brasileiro, de forma clara e conversacional\n- Formate valores em R$ (ex: R$ 142.300,00)\n- Formate percentuais com uma casa decimal (ex: +8,2%)\n- Se o usuário não especificar período, use os últimos 90 dias até hoje\n- Datas sempre no formato YYYY-MM-DD ao chamar as tools\n- Limite consultas a no máximo 12 meses de histórico\n- Nunca exponha tokens, URLs internas ou dados técnicos\n- Seja objetivo: responda a pergunta e sugira 1 insight quando fizer sentido\n\nUsuário atual: {{ $json.name }} (telefone: {{ $json.phone }})"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [520, 160],
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "AI Agent INTT"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [320, 400],
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "CONFIGURE_OPENAI_CREDENTIAL",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Normalizar Entrada').item.json.sessionId }}",
+        "contextWindowLength": 12
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [520, 400],
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Memória por Telefone"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta faturamento total, quantidade de pedidos, ticket médio e comparativo com o período anterior. Use quando perguntarem sobre vendas gerais, faturamento, receita ou desempenho do período. Parâmetros: p_inicio e p_fim (YYYY-MM-DD).",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/metricas_vendas_gerais",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial do período no formato YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final do período no formato YYYY-MM-DD', 'string')) }},\n  \"p_comparar_anterior\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [720, 400],
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "consultar_faturamento"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retorna ranking de vendedores por faturamento, quantidade de pedidos e ticket médio. Use para perguntas sobre desempenho de vendedores, ranking ou quem vendeu mais.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/ranking_vendedores",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final YYYY-MM-DD', 'string')) }},\n  \"p_limite\": {{ $fromAI('p_limite', 'Quantidade máxima de vendedores no ranking', 'number', 10) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [880, 400],
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "ranking_vendedores"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Analisa revendedores: ativos no período, inativos/em risco e com potencial de crescimento. Use para perguntas sobre revendedores, distribuidores ou carteira de clientes B2B.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/analise_revendedor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final YYYY-MM-DD', 'string')) }},\n  \"p_vendedor_id\": null,\n  \"p_estado\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [1040, 400],
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "analise_revendedores"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Analisa produtos: mais vendidos e maior faturamento. Use p_agrupar='produto' (padrão) ou 'categoria' se perguntarem por categorias.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/analise_produtos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final YYYY-MM-DD', 'string')) }},\n  \"p_agrupar\": {{ JSON.stringify($fromAI('p_agrupar', 'Agrupar por produto ou categoria', 'string', 'produto')) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [1200, 400],
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "analise_produtos"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Analisa recorrência de clientes: novos, recorrentes, em risco, inativos, taxa de recompra e top LTV. Use para perguntas sobre retenção, churn ou clientes fiéis.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/analise_recorrencia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final YYYY-MM-DD', 'string')) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [720, 560],
+      "id": "a1000000-0000-4000-8000-000000000011",
+      "name": "analise_recorrencia"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Analisa conversão WhatsApp: total de conversas, conversas com venda, sem fechamento, taxa de conversão, objeções e motivos de perda.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/analise_conversao",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": {{ JSON.stringify($fromAI('p_inicio', 'Data inicial YYYY-MM-DD', 'string')) }},\n  \"p_fim\": {{ JSON.stringify($fromAI('p_fim', 'Data final YYYY-MM-DD', 'string')) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [880, 560],
+      "id": "a1000000-0000-4000-8000-000000000012",
+      "name": "analise_conversao"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lista produtos comprados juntos (cross-sell) e sugestões de produtos. Opcionalmente filtra por cliente_id UUID.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/produtos_cesta",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_cliente_id\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [1040, 560],
+      "id": "a1000000-0000-4000-8000-000000000013",
+      "name": "produtos_cesta"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retorna tempo médio de resposta dos vendedores no WhatsApp (em minutos). Use quando perguntarem sobre SLA, tempo de resposta ou atendimento.",
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/tempo_resposta_vendedor",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_vendedor_id\": null\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [1200, 560],
+      "id": "a1000000-0000-4000-8000-000000000014",
+      "name": "tempo_resposta_vendedor"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: true,\n  phone: $('Normalizar Entrada').item.json.phone,\n  name: $('Normalizar Entrada').item.json.name,\n  question: $('Normalizar Entrada').item.json.message,\n  answer: $json.output\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 160],
+      "id": "a1000000-0000-4000-8000-000000000015",
+      "name": "Responder Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook WhatsApp": {
+      "main": [[{ "node": "Normalizar Entrada", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Entrada": {
+      "main": [[{ "node": "AI Agent INTT", "type": "main", "index": 0 }]]
+    },
+    "AI Agent INTT": {
+      "main": [[{ "node": "Responder Webhook", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent INTT", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Memória por Telefone": {
+      "ai_memory": [[{ "node": "AI Agent INTT", "type": "ai_memory", "index": 0 }]]
+    },
+    "consultar_faturamento": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "ranking_vendedores": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "analise_revendedores": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "analise_produtos": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "analise_recorrencia": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "analise_conversao": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "produtos_cesta": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    },
+    "tempo_resposta_vendedor": {
+      "ai_tool": [[{ "node": "AI Agent INTT", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

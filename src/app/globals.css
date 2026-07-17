@@ -12,6 +12,27 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  /* Bordô — cor primária da marca INTT (lojaintt.com.br) */
+  --color-brand-50: #faf3f3;
+  --color-brand-100: #f3dedf;
+  --color-brand-200: #e5b6b8;
+  --color-brand-300: #d38a8d;
+  --color-brand-400: #c55b60;
+  --color-brand-500: #a8262c;
+  --color-brand-600: #82181c;
+  --color-brand-700: #6b1216;
+  --color-brand-800: #5a0c0e;
+  --color-brand-900: #470a0c;
+
+  /* Bronze — acento secundário da marca */
+  --color-bronze-300: #c4a687;
+  --color-bronze-400: #b3906c;
+  --color-bronze-500: #a7815c;
+  --color-bronze-600: #8a6a4a;
+  --color-bronze-700: #745230;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

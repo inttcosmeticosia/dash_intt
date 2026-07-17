@@ -1,0 +1,235 @@
+{
+  "name": "INTT — Relatório Semanal por E-mail",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# INTT — Relatório Semanal por E-mail\n\nToda **segunda-feira às 08:00** (America/Sao_Paulo) envia por e-mail o resumo da semana anterior (segunda a domingo): KPIs com comparação, série diária, ranking de representantes, lista de transferências e internacionais.\n\n## Antes de ativar\n1. Nó `Enviar E-mail` → criar credencial **SMTP** (ou trocar por nó Gmail/Outlook e reconectar)\n2. No n8n → Settings → Variables:\n   - `SUPABASE_URL` = `https://cltxkixvsfrokxdfpfga.supabase.co`\n   - `SUPABASE_SERVICE_ROLE_KEY` = service role key (NUNCA a anon)\n   - `REPORT_EMAIL_TO` = destinatário (opcional; padrão lucy@dojo.com.br)\n   - `REPORT_EMAIL_FROM` = remetente (opcional)\n3. Workflow já está com timezone America/Sao_Paulo nas Settings\n\n## Testar sem esperar segunda\nClique em **Execute Workflow** — usa a última semana completa e envia na hora.",
+        "height": 420,
+        "width": 540,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-380, -140],
+      "id": "c3000000-0000-4000-8000-000000000001",
+      "name": "Instruções"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-160, 200],
+      "id": "c3000000-0000-4000-8000-000000000002",
+      "name": "Toda Segunda 08h"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Semana anterior completa, segunda a domingo, no fuso de São Paulo\nconst agora = DateTime.now().setZone('America/Sao_Paulo');\nconst inicioSemana = agora.startOf('week').minus({ weeks: 1 }); // luxon: semana começa na segunda\nconst fimSemana = inicioSemana.plus({ days: 6 });\n\nreturn [{\n  json: {\n    inicio: inicioSemana.toFormat('yyyy-MM-dd'),\n    fim: fimSemana.toFormat('yyyy-MM-dd'),\n    rotulo: `${inicioSemana.toFormat('dd/MM/yyyy')} a ${fimSemana.toFormat('dd/MM/yyyy')}`,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 200],
+      "id": "c3000000-0000-4000-8000-000000000003",
+      "name": "Calcular Período"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/metricas_atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": \"{{ $('Calcular Período').first().json.inicio }}\",\n  \"p_fim\": \"{{ $('Calcular Período').first().json.fim }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 200],
+      "id": "c3000000-0000-4000-8000-000000000004",
+      "name": "KPIs Semana",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/atendimentos_diarios",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": \"{{ $('Calcular Período').first().json.inicio }}\",\n  \"p_fim\": \"{{ $('Calcular Período').first().json.fim }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 200],
+      "id": "c3000000-0000-4000-8000-000000000005",
+      "name": "Série Diária",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/handoffs_por_representante",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": \"{{ $('Calcular Período').first().json.inicio }}\",\n  \"p_fim\": \"{{ $('Calcular Período').first().json.fim }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 200],
+      "id": "c3000000-0000-4000-8000-000000000006",
+      "name": "Ranking Representantes",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/relatorio_handoffs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": \"{{ $('Calcular Período').first().json.inicio }}\",\n  \"p_fim\": \"{{ $('Calcular Período').first().json.fim }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 200],
+      "id": "c3000000-0000-4000-8000-000000000007",
+      "name": "Lista Handoffs",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/relatorio_internacional",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_inicio\": \"{{ $('Calcular Período').first().json.inicio }}\",\n  \"p_fim\": \"{{ $('Calcular Período').first().json.fim }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 200],
+      "id": "c3000000-0000-4000-8000-000000000008",
+      "name": "Internacional",
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const periodo = $('Calcular Período').first().json;\nconst kpis = $('KPIs Semana').first().json ?? {};\nconst dias = $('Série Diária').all().map(i => i.json).filter(r => r && r.dia);\nconst ranking = $('Ranking Representantes').all().map(i => i.json).filter(r => r && r.representante);\nconst handoffs = $('Lista Handoffs').all().map(i => i.json).filter(r => r && r.data_handoff);\nconst intl = $('Internacional').first().json ?? {};\n\nconst esc = s => String(s ?? '').replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' }[c]));\nconst num = n => Number(n ?? 0).toLocaleString('pt-BR');\nconst fmtDia = iso => DateTime.fromISO(String(iso)).setLocale('pt-BR').toFormat('ccc dd/MM');\nconst fmtDataHora = iso => DateTime.fromISO(String(iso)).setZone('America/Sao_Paulo').toFormat('dd/MM HH:mm');\n\nconst ant = kpis.periodo_anterior ?? {};\nconst delta = (atual, anterior) => {\n  if (anterior == null || Number(anterior) === 0) return '';\n  const pct = ((Number(atual ?? 0) - Number(anterior)) / Number(anterior)) * 100;\n  const cor = pct >= 0 ? '#1f9d8a' : '#bd3a41';\n  const seta = pct >= 0 ? '▲' : '▼';\n  return `<span style=\"color:${cor};font-size:12px\"> ${seta} ${pct.toFixed(1).replace('.', ',')}%</span>`;\n};\n\nconst thStyle = 'style=\"background:#82181c;color:#fff;padding:6px 10px;text-align:left;font-size:13px\"';\nconst tdStyle = 'style=\"padding:6px 10px;border-bottom:1px solid #eee;font-size:13px\"';\nconst tableStyle = 'style=\"border-collapse:collapse;width:100%;margin:8px 0 24px\"';\n\nconst kpiCard = (titulo, valor, extra = '') =>\n  `<td style=\"padding:12px 16px;background:#faf7f5;border:1px solid #eee;border-radius:8px;text-align:center\">` +\n  `<div style=\"font-size:12px;color:#777\">${titulo}</div>` +\n  `<div style=\"font-size:24px;font-weight:bold;color:#1d1d1d\">${valor}${extra}</div></td>`;\n\nconst blocoKpis = `<table style=\"border-collapse:separate;border-spacing:8px;width:100%\"><tr>` +\n  kpiCard('Novos atendimentos', num(kpis.novos_atendimentos), delta(kpis.novos_atendimentos, ant.novos_atendimentos)) +\n  kpiCard('Conversas ativas', num(kpis.conversas_ativas), delta(kpis.conversas_ativas, ant.conversas_ativas)) +\n  kpiCard('Transferidos', num(kpis.transferidos), delta(kpis.transferidos, ant.transferidos)) +\n  kpiCard('Taxa de transferência', String(kpis.taxa_transferencia ?? 0).replace('.', ',') + '%') +\n  kpiCard('Internacionais', num(kpis.internacionais)) +\n  `</tr></table>`;\n\nconst blocoDias = dias.length\n  ? `<table ${tableStyle}><tr><th ${thStyle}>Dia</th><th ${thStyle}>Novos</th><th ${thStyle}>Ativos</th><th ${thStyle}>Transferidos</th></tr>` +\n    dias.map(d => `<tr><td ${tdStyle}>${fmtDia(d.dia)}</td><td ${tdStyle}>${num(d.novos)}</td><td ${tdStyle}>${num(d.ativos)}</td><td ${tdStyle}>${num(d.transferidos)}</td></tr>`).join('') +\n    `</table>`\n  : '<p style=\"color:#777\">Sem dados diários no período.</p>';\n\nconst blocoRanking = ranking.length\n  ? `<table ${tableStyle}><tr><th ${thStyle}>Representante</th><th ${thStyle}>Telefone</th><th ${thStyle}>Transferências</th><th ${thStyle}>Última</th></tr>` +\n    ranking.map(r => `<tr><td ${tdStyle}>${esc(r.representante)}</td><td ${tdStyle}>${esc(r.telefone_representante)}</td><td ${tdStyle}>${num(r.total)}</td><td ${tdStyle}>${fmtDataHora(r.ultima_transferencia)}</td></tr>`).join('') +\n    `</table>`\n  : '<p style=\"color:#777\">Nenhuma transferência no período.</p>';\n\nconst MAX_HANDOFFS = 40;\nconst blocoHandoffs = handoffs.length\n  ? `<table ${tableStyle}><tr><th ${thStyle}>Data</th><th ${thStyle}>Cliente</th><th ${thStyle}>Telefone</th><th ${thStyle}>Representante</th><th ${thStyle}>Região</th><th ${thStyle}>Tipo</th><th ${thStyle}>Motivo</th></tr>` +\n    handoffs.slice(0, MAX_HANDOFFS).map(h => `<tr><td ${tdStyle}>${fmtDataHora(h.data_handoff)}</td><td ${tdStyle}>${esc(h.nome_cliente ?? '—')}</td><td ${tdStyle}>${esc(h.telefone_cliente)}</td><td ${tdStyle}>${esc(h.representante)}</td><td ${tdStyle}>${esc(h.regiao ?? '—')}</td><td ${tdStyle}>${esc(h.tipo_cliente ?? '—')}</td><td ${tdStyle}>${esc(h.motivo ?? '—')}</td></tr>`).join('') +\n    `</table>` +\n    (handoffs.length > MAX_HANDOFFS ? `<p style=\"color:#777;font-size:12px\">Mostrando ${MAX_HANDOFFS} de ${handoffs.length} transferências — lista completa no dashboard.</p>` : '')\n  : '<p style=\"color:#777\">Nenhuma transferência no período.</p>';\n\nconst porPais = Array.isArray(intl.por_pais) ? intl.por_pais : [];\nconst blocoIntl = (intl.total ?? 0) > 0\n  ? `<p style=\"font-size:13px\"><strong>${num(intl.total)}</strong> atendimento(s) internacional(is): ` +\n    porPais.map(p => `${esc(p.pais)} (${num(p.total)})`).join(', ') + `</p>`\n  : '<p style=\"color:#777\">Nenhum atendimento internacional no período.</p>';\n\nconst html = `<!DOCTYPE html><html><body style=\"font-family:Arial,Helvetica,sans-serif;color:#1d1d1d;max-width:860px;margin:0 auto;padding:16px\">` +\n  `<div style=\"background:#1d1d1d;padding:16px 24px;border-radius:8px 8px 0 0\">` +\n  `<h1 style=\"color:#fff;font-size:18px;margin:0\">Relatório semanal — Atendimento WhatsApp INTT</h1>` +\n  `<p style=\"color:#a7815c;font-size:13px;margin:4px 0 0\">Semana de ${periodo.rotulo}</p></div>` +\n  `<div style=\"border:1px solid #eee;border-top:0;border-radius:0 0 8px 8px;padding:16px 24px\">` +\n  `<h2 style=\"font-size:15px;color:#82181c\">Resumo da semana</h2>` + blocoKpis +\n  `<h2 style=\"font-size:15px;color:#82181c\">Dia a dia</h2>` + blocoDias +\n  `<h2 style=\"font-size:15px;color:#82181c\">Ranking de representantes</h2>` + blocoRanking +\n  `<h2 style=\"font-size:15px;color:#82181c\">Transferências da semana</h2>` + blocoHandoffs +\n  `<h2 style=\"font-size:15px;color:#82181c\">Internacional</h2>` + blocoIntl +\n  `<p style=\"color:#999;font-size:11px;margin-top:24px\">Gerado automaticamente pelo n8n a partir do Supabase (comparativos vs. semana anterior).</p>` +\n  `</div></body></html>`;\n\nreturn [{\n  json: {\n    subject: `Relatório semanal atendimento WhatsApp — ${periodo.rotulo}`,\n    html,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 200],
+      "id": "c3000000-0000-4000-8000-000000000009",
+      "name": "Montar E-mail"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.REPORT_EMAIL_FROM || 'relatorios@intt.com.br' }}",
+        "toEmail": "={{ $env.REPORT_EMAIL_TO || 'lucy@dojo.com.br' }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1600, 200],
+      "id": "c3000000-0000-4000-8000-000000000010",
+      "name": "Enviar E-mail",
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE_SMTP_CREDENTIAL",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Toda Segunda 08h": {
+      "main": [[{ "node": "Calcular Período", "type": "main", "index": 0 }]]
+    },
+    "Calcular Período": {
+      "main": [[{ "node": "KPIs Semana", "type": "main", "index": 0 }]]
+    },
+    "KPIs Semana": {
+      "main": [[{ "node": "Série Diária", "type": "main", "index": 0 }]]
+    },
+    "Série Diária": {
+      "main": [[{ "node": "Ranking Representantes", "type": "main", "index": 0 }]]
+    },
+    "Ranking Representantes": {
+      "main": [[{ "node": "Lista Handoffs", "type": "main", "index": 0 }]]
+    },
+    "Lista Handoffs": {
+      "main": [[{ "node": "Internacional", "type": "main", "index": 0 }]]
+    },
+    "Internacional": {
+      "main": [[{ "node": "Montar E-mail", "type": "main", "index": 0 }]]
+    },
+    "Montar E-mail": {
+      "main": [[{ "node": "Enviar E-mail", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  }
+}

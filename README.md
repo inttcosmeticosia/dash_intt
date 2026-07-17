@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# INTT Analytics
 
-## Getting Started
+Dashboard de relatórios do atendimento WhatsApp da INTT. Lê direto as tabelas de produção do agente n8n (`conversations`, `inbound_messages`) no Supabase — sem integração Mercos.
 
-First, run the development server:
+## Stack
+
+- **Frontend:** Next.js 16 + Tailwind v4 + Recharts
+- **Backend:** Supabase (Postgres + Auth + RPCs)
+- **Origem dos dados:** agente de atendimento WhatsApp (n8n) que grava em `conversations`
+
+## Setup
 
 ```bash
+cp .env.example .env.local
+# Preencha NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Autenticação
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Acesse o [Supabase Dashboard](https://supabase.com/dashboard/project/cltxkixvsfrokxdfpfga/auth/users)
+2. Crie um usuário em Authentication → Users
+3. O trigger `handle_new_user` cria automaticamente o perfil em `profiles`
+4. Para admin, atualize `profiles.role = 'admin'` via SQL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Relatórios disponíveis
 
-## Learn More
+Todos filtráveis por data (filtro de período no topo do dashboard).
 
-To learn more about Next.js, take a look at the following resources:
+| Página | Conteúdo | RPCs |
+|--------|----------|------|
+| `/dashboard` | KPIs do período, atendimentos por dia, transferências por dia, resumo semanal | `metricas_atendimento`, `atendimentos_diarios`, `atendimentos_semanais` |
+| `/dashboard/handoffs` | Transferências para representantes: ranking + tabela completa + export CSV | `relatorio_handoffs`, `handoffs_por_representante` |
+| `/dashboard/internacional` | Atendimentos fora do Brasil por país (DDI do telefone) + export CSV | `relatorio_internacional` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Regras de negócio
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Conversa válida:** `phone` com mais de 5 caracteres (IDs internos do conector Bitrix são ignorados)
+- **Novo atendimento:** conversa criada no dia (`created_at`, fuso America/Sao_Paulo)
+- **Conversa ativa:** conversa com mensagem recebida no dia (`inbound_messages.received_at`)
+- **Transferência (handoff):** coluna `Representante` preenchida; data = `coalesce(last_message_at, created_at)`
+- **Internacional:** DDI do telefone diferente de 55 (país derivado do prefixo)
 
-## Deploy on Vercel
+## Estrutura
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/
+│   ├── (auth)/login/
+│   └── (protected)/dashboard/
+│       ├── page.tsx           # Visão Geral
+│       ├── handoffs/          # Transferências
+│       └── internacional/     # Fora do Brasil
+├── components/
+├── contexts/
+├── lib/supabase/
+└── services/analytics.ts
+```
