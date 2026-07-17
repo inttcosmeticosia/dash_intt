@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Globe, LayoutDashboard, LogOut, UserCheck } from 'lucide-react';
+import { Globe, LayoutDashboard, LogOut, Package, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PeriodFilter } from '@/components/PeriodFilter';
 import { FilterProvider } from '@/contexts/FilterContext';
@@ -12,6 +12,7 @@ import { signOut } from '@/services/analytics';
 const nav = [
   { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
   { href: '/dashboard/handoffs', label: 'Transferências', icon: UserCheck },
+  { href: '/dashboard/produtos', label: 'Produtos', icon: Package },
   { href: '/dashboard/internacional', label: 'Internacional', icon: Globe },
 ];
 

@@ -131,6 +131,29 @@ export async function getRelatorioInternacional(periodo: PeriodFilter): Promise<
   return data as RelatorioInternacional;
 }
 
+export type ProdutoMencionado = {
+  produto: string;
+  conversas: number;
+  em_mensagens: number;
+  em_resumos: number;
+  eh_categoria: boolean;
+};
+
+export async function getProdutosMencionados(
+  periodo: PeriodFilter,
+  opts?: { incluirCategorias?: boolean; limite?: number }
+): Promise<ProdutoMencionado[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('agente_produtos_mencionados', {
+    p_inicio: periodo.inicio,
+    p_fim: periodo.fim,
+    p_incluir_categorias: opts?.incluirCategorias ?? true,
+    p_limite: opts?.limite ?? 100,
+  });
+  if (error) throw error;
+  return (data ?? []) as ProdutoMencionado[];
+}
+
 export async function getProfile() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
