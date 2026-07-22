@@ -58,7 +58,8 @@ export default function HandoffsPage() {
   const topRegioes = useMemo(() => {
     const contagem = new Map<string, number>();
     for (const l of linhas) {
-      const r = l.regiao ?? 'Não informada';
+      const r = l.regiao?.trim();
+      if (!r) continue;
       contagem.set(r, (contagem.get(r) ?? 0) + 1);
     }
     return [...contagem.entries()]
@@ -70,7 +71,8 @@ export default function HandoffsPage() {
   const porTipo = useMemo(() => {
     const contagem = new Map<string, number>();
     for (const l of linhas) {
-      const t = l.tipo_cliente ?? 'Não classificado';
+      const t = l.tipo_cliente?.trim();
+      if (!t) continue;
       contagem.set(t, (contagem.get(t) ?? 0) + 1);
     }
     return [...contagem.entries()]
