@@ -13,9 +13,9 @@ export function KpiCard({ label, value, subtitle, trend, className }: KpiCardPro
   const trendDown = trend != null && trend < 0;
 
   return (
-    <div className={cn('rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900', className)}>
+    <div className={cn('rounded-xl border border-zinc-200 bg-white p-5 shadow-sm', className)}>
       <p className="text-sm font-medium text-zinc-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{value}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">{value}</p>
       <div className="mt-1 flex items-center gap-2">
         {trend != null && (
           <span

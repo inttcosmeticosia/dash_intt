@@ -85,7 +85,7 @@ export default function InternacionalPage() {
         actions={
           <button
             onClick={exportar}
-            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50:bg-zinc-800"
           >
             <Download className="h-3.5 w-3.5" />
             Exportar CSV

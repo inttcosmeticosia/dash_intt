@@ -16,8 +16,7 @@ import {
 } from 'recharts';
 import { formatNumber } from '@/lib/utils';
 
-// Paleta categórica da marca, validada (CVD + contraste) em light e dark.
-// Cor segue a entidade: mesma série = mesma cor em todos os gráficos.
+// Paleta categórica da marca. Cor segue a entidade em todos os gráficos.
 export const SERIES = {
   novos: '#bd3a41', // bordô
   ativos: '#b97a1c', // bronze
@@ -46,10 +45,10 @@ function ChartTooltip({ active, payload, label, valueFormat }: ChartTooltipProps
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-lg">
       <p className="mb-1 text-xs font-medium text-zinc-500">{label}</p>
       {payload.map((entry) => (
-        <p key={entry.name} className="flex items-center gap-1.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+        <p key={entry.name} className="flex items-center gap-1.5 text-sm font-semibold text-zinc-800">
           <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
           {entry.name}: {formatChartValue(Number(entry.value ?? 0), valueFormat)}
         </p>
@@ -58,18 +57,31 @@ function ChartTooltip({ active, payload, label, valueFormat }: ChartTooltipProps
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: ReactNode }) {
+function ChartCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <h3 className="mb-4 text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</h3>
+    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-zinc-700">{title}</h3>
+        {description && (
+          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{description}</p>
+        )}
+      </div>
       {children}
     </div>
   );
 }
 
-function EmptyChart({ title }: { title: string }) {
+function EmptyChart({ title, description }: { title: string; description?: string }) {
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description}>
       <div className="flex h-[280px] items-center justify-center text-sm text-zinc-400">
         Sem dados para exibir no período selecionado
       </div>
@@ -77,23 +89,37 @@ function EmptyChart({ title }: { title: string }) {
   );
 }
 
+/** Quantos ticks pular no eixo X para ~6–8 labels legíveis. */
+function xTickSkip(count: number) {
+  if (count <= 8) return 0;
+  if (count <= 14) return 1;
+  if (count <= 21) return 2;
+  if (count <= 35) return 4;
+  return Math.max(5, Math.ceil(count / 7) - 1);
+}
+
 export function LineChartCard({
   title,
+  description,
   data,
   xKey,
   lines,
   valueFormat = 'number',
 }: {
   title: string;
+  description?: string;
   data: ChartData[];
   xKey: string;
   lines: { key: string; color: string; name: string }[];
   valueFormat?: ValueFormat;
 }) {
-  if (!data.length) return <EmptyChart title={title} />;
+  if (!data.length) return <EmptyChart title={title} description={description} />;
+
+  const showDots = data.length <= 45;
+  const tickSkip = xTickSkip(data.length);
 
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description}>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
@@ -102,8 +128,8 @@ export function LineChartCard({
             tick={{ fontSize: 11, fill: '#71717a' }}
             tickLine={false}
             axisLine={{ stroke: '#e4e4e7' }}
-            interval="preserveStartEnd"
-            minTickGap={24}
+            interval={tickSkip}
+            minTickGap={28}
           />
           <YAxis
             tick={{ fontSize: 11, fill: '#71717a' }}
@@ -118,13 +144,13 @@ export function LineChartCard({
           {lines.map((l) => (
             <Line
               key={l.key}
-              type="monotone"
+              type="linear"
               dataKey={l.key}
               stroke={l.color}
               name={l.name}
               strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 5 }}
+              dot={showDots ? { r: 3, strokeWidth: 0, fill: l.color } : false}
+              activeDot={{ r: 5, strokeWidth: 0 }}
             />
           ))}
         </LineChart>
@@ -135,6 +161,7 @@ export function LineChartCard({
 
 export function BarChartCard({
   title,
+  description,
   data,
   xKey,
   bars,
@@ -143,6 +170,7 @@ export function BarChartCard({
   yWidth = 110,
 }: {
   title: string;
+  description?: string;
   data: ChartData[];
   xKey: string;
   bars: { key: string; color: string; name: string }[];
@@ -150,7 +178,7 @@ export function BarChartCard({
   layout?: 'vertical' | 'horizontal';
   yWidth?: number;
 }) {
-  if (!data.length) return <EmptyChart title={title} />;
+  if (!data.length) return <EmptyChart title={title} description={description} />;
 
   const isHorizontal = layout === 'horizontal';
   // Série única na horizontal vira "ranking": barra fina com trilho, valor na
@@ -161,13 +189,16 @@ export function BarChartCard({
     return s.length > 16 ? `${s.slice(0, 15)}…` : s;
   };
 
+  const tickSkip = xTickSkip(data.length);
+  const rotateLabels = !isHorizontal && data.length > 10 && tickSkip <= 1;
+
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description}>
       <ResponsiveContainer width="100%" height={isHorizontal ? Math.max(220, data.length * (isRanking ? 40 : 34)) : 300}>
         <BarChart
           data={data}
           layout={isHorizontal ? 'vertical' : 'horizontal'}
-          margin={{ top: 8, right: isRanking ? 36 : 16, left: 8, bottom: 8 }}
+          margin={{ top: 8, right: isRanking ? 36 : 16, left: 8, bottom: rotateLabels ? 12 : 8 }}
         >
           {!isRanking && (
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={!isHorizontal} vertical={isHorizontal} />
@@ -200,10 +231,11 @@ export function BarChartCard({
                 tick={{ fontSize: 11, fill: '#71717a' }}
                 tickLine={false}
                 axisLine={{ stroke: '#e4e4e7' }}
-                interval={0}
-                angle={data.length > 6 ? -35 : 0}
-                textAnchor={data.length > 6 ? 'end' : 'middle'}
-                height={data.length > 6 ? 60 : 30}
+                interval={tickSkip}
+                minTickGap={32}
+                angle={rotateLabels ? -35 : 0}
+                textAnchor={rotateLabels ? 'end' : 'middle'}
+                height={rotateLabels ? 52 : 30}
               />
               <YAxis
                 tick={{ fontSize: 11, fill: '#71717a' }}
@@ -260,15 +292,15 @@ export function DataTable({
   const fim = pageSize ? Math.min((currentPage + 1) * pageSize, rows.length) : rows.length;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</h3>
+    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3">
+        <h3 className="text-sm font-semibold text-zinc-700">{title}</h3>
         {actions}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-100 text-left text-xs text-zinc-500 dark:border-zinc-800">
+            <tr className="border-b border-zinc-100 text-left text-xs text-zinc-500">
               {columns.map((c) => (
                 <th key={c.key} className="px-5 py-2 font-medium">{c.label}</th>
               ))}
@@ -279,9 +311,9 @@ export function DataTable({
               <tr><td colSpan={columns.length} className="px-5 py-8 text-center text-zinc-400">Sem dados</td></tr>
             ) : (
               visible.map((row, i) => (
-                <tr key={i} className="border-b border-zinc-50 hover:bg-brand-50/60 dark:border-zinc-800/50 dark:hover:bg-zinc-800/30">
+                <tr key={i} className="border-b border-zinc-50 hover:bg-brand-50/60:bg-zinc-800/30">
                   {columns.map((c) => (
-                    <td key={c.key} className="px-5 py-2.5 text-zinc-700 dark:text-zinc-300">
+                    <td key={c.key} className="px-5 py-2.5 text-zinc-700">
                       {c.format ? c.format(row[c.key]) : String(row[c.key] ?? '—')}
                     </td>
                   ))}
@@ -292,7 +324,7 @@ export function DataTable({
         </table>
       </div>
       {pageSize && rows.length > pageSize && (
-        <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-sm dark:border-zinc-800">
+        <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3 text-sm">
           <span className="text-xs text-zinc-500">
             {inicio}–{fim} de {rows.length}
           </span>
@@ -300,7 +332,7 @@ export function DataTable({
             <button
               onClick={() => setPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
-              className="rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40:bg-zinc-800"
             >
               Anterior
             </button>
@@ -310,7 +342,7 @@ export function DataTable({
             <button
               onClick={() => setPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
-              className="rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-40:bg-zinc-800"
             >
               Próxima
             </button>

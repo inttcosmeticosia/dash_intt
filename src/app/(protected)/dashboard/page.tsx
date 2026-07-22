@@ -90,6 +90,7 @@ export default function DashboardPage() {
 
       <LineChartCard
         title="Atendimentos por Dia"
+        description="Novas conversas abertas e conversas ativas (com mensagem) em cada dia do período."
         data={chartDiario}
         xKey="dia"
         lines={[
@@ -100,7 +101,8 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <BarChartCard
-          title="Transferências para Representantes por Dia"
+          title="Handoffs por Dia"
+          description="Quantidade de conversas transferidas para um representante comercial em cada dia."
           data={chartDiario}
           xKey="dia"
           bars={[{ key: 'transferidos', color: SERIES.transferidos, name: 'Transferidos' }]}
@@ -108,7 +110,8 @@ export default function DashboardPage() {
         />
 
         <BarChartCard
-          title="Resumo Semanal"
+          title="Comparativo por Semana"
+          description="Novos: conversas abertas na semana. Ativos: conversas com mensagem no período. Handoffs: transferidas para representante. Semana começa na segunda."
           data={chartSemanal}
           xKey="semana"
           bars={[

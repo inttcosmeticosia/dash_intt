@@ -25,7 +25,7 @@ export function PeriodFilter() {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="flex overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+      <div className="flex overflow-hidden rounded-lg border border-zinc-200">
         {presets.map((p) => {
           const alvo = periodoDe(p.dias);
           const ativo = periodo.inicio === alvo.inicio && periodo.fim === alvo.fim;
@@ -37,7 +37,7 @@ export function PeriodFilter() {
                 'px-3 py-1.5 text-xs font-medium transition-colors',
                 ativo
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-50:bg-zinc-800'
               )}
             >
               {p.label}
@@ -49,14 +49,14 @@ export function PeriodFilter() {
         type="date"
         value={periodo.inicio}
         onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })}
-        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm"
       />
       <span className="text-zinc-400">até</span>
       <input
         type="date"
         value={periodo.fim}
         onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })}
-        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm"
       />
     </div>
   );

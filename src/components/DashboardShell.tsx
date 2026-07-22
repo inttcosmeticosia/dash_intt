@@ -28,7 +28,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <FilterProvider>
-      <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex min-h-screen bg-zinc-50">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1d1d1d] md:flex">
           <div className="flex flex-col items-center gap-2 border-b border-white/10 px-5 py-6">
             <Image src="/logo-intt-letra-amarela.webp" alt="INTT Cosméticos" width={110} height={80} priority />
@@ -61,9 +61,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 px-6 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
+          <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 px-6 py-4 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              <h1 className="text-lg font-semibold text-zinc-900">
                 {nav.find((n) => n.href === pathname)?.label ?? 'Dashboard'}
               </h1>
               <PeriodFilter />

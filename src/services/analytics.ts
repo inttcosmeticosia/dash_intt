@@ -154,6 +154,60 @@ export async function getProdutosMencionados(
   return (data ?? []) as ProdutoMencionado[];
 }
 
+export type ProdutosResumo = {
+  conversas_distintas: number;
+  produtos_citados: number;
+};
+
+export async function getProdutosResumo(
+  periodo: PeriodFilter,
+  opts?: { incluirCategorias?: boolean }
+): Promise<ProdutosResumo> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('agente_produtos_resumo', {
+    p_inicio: periodo.inicio,
+    p_fim: periodo.fim,
+    p_incluir_categorias: opts?.incluirCategorias ?? true,
+  });
+  if (error) throw error;
+  return (data ?? { conversas_distintas: 0, produtos_citados: 0 }) as ProdutosResumo;
+}
+
+export type TermoCustom = {
+  id: number;
+  nome: string;
+  aliases: string[];
+  categoria: boolean;
+  criado_em: string;
+};
+
+export async function listarTermosCustom(): Promise<TermoCustom[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('analytics_produtos_listar');
+  if (error) throw error;
+  return (data ?? []) as TermoCustom[];
+}
+
+export async function adicionarTermoCustom(input: {
+  nome: string;
+  aliases: string[];
+  categoria: boolean;
+}): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('analytics_produtos_adicionar', {
+    p_nome: input.nome,
+    p_aliases: input.aliases,
+    p_categoria: input.categoria,
+  });
+  if (error) throw error;
+}
+
+export async function removerTermoCustom(id: number): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('analytics_produtos_remover', { p_id: id });
+  if (error) throw error;
+}
+
 export async function getProfile() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
