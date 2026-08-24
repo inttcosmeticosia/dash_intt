@@ -5,7 +5,7 @@ import { Download, Search } from 'lucide-react';
 import { KpiCard, KpiCardNumber } from '@/components/KpiCard';
 import { BarChartCard, DataTable, SERIES } from '@/components/charts';
 import { useFilters } from '@/contexts/FilterContext';
-import { downloadCsv, formatDateTime, formatPhone, normalizeName } from '@/lib/utils';
+import { cleanResumo, downloadCsv, formatDateTime, formatPhone, normalizeName } from '@/lib/utils';
 import {
   getHandoffsPorRepresentante,
   getRelatorioHandoffs,
@@ -50,7 +50,7 @@ export default function HandoffsPage() {
     return linhas.filter((l) => {
       if (repFiltro && normalizeName(l.representante) !== normalizeName(repFiltro)) return false;
       if (!q) return true;
-      return [l.nome_cliente, l.telefone_cliente, l.razao_social, l.representante, l.regiao, l.tipo_cliente]
+      return [l.nome_cliente, l.telefone_cliente, l.razao_social, l.representante, l.regiao, l.tipo_cliente, l.resumo]
         .some((campo) => campo?.toLowerCase().includes(q));
     });
   }, [linhas, busca, repFiltro]);
@@ -88,7 +88,7 @@ export default function HandoffsPage() {
   function exportar() {
     downloadCsv(
       `handoffs_${periodo.inicio}_${periodo.fim}.csv`,
-      ['Data', 'Nome Cliente', 'Razão Social', 'Telefone Cliente', 'Representante', 'Telefone Representante', 'Região', 'Tipo Cliente', 'Motivo', 'País'],
+      ['Data', 'Nome Cliente', 'Razão Social', 'Telefone Cliente', 'Representante', 'Telefone Representante', 'Região', 'Tipo Cliente', 'País', 'Resumo'],
       filtradas.map((l) => [
         formatDateTime(l.data_handoff),
         l.nome_cliente,
@@ -98,8 +98,8 @@ export default function HandoffsPage() {
         l.telefone_representante,
         l.regiao,
         l.tipo_cliente,
-        l.motivo,
         l.pais,
+        l.resumo ? cleanResumo(l.resumo, Number.MAX_SAFE_INTEGER) : null,
       ])
     );
   }
@@ -199,7 +199,7 @@ export default function HandoffsPage() {
           { key: 'representante', label: 'Representante' },
           { key: 'regiao', label: 'Região' },
           { key: 'tipo_cliente', label: 'Tipo' },
-          { key: 'motivo', label: 'Motivo' },
+          { key: 'resumo', label: 'Resumo', format: (v) => cleanResumo(v as string | null) },
         ]}
         rows={filtradas as unknown as Record<string, unknown>[]}
       />

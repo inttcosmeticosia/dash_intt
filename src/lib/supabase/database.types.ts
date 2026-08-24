@@ -29,6 +29,7 @@ export type Database = {
           Resumo_Qualificacao: string | null;
           handoff_to: string | null;
           reason: string | null;
+          Passouosite: boolean | null;
         };
       };
       inbound_messages: {
@@ -50,6 +51,7 @@ export type Database = {
       relatorio_handoffs: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
       handoffs_por_representante: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
       relatorio_internacional: { Args: { p_inicio: string; p_fim: string }; Returns: Record<string, unknown> };
+      relatorio_site: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
     };
   };
 };

@@ -44,6 +44,17 @@ export type HandoffRow = {
   tipo_cliente: string | null;
   motivo: string | null;
   pais: string | null;
+  resumo: string | null;
+};
+
+export type SiteRow = {
+  data: string;
+  nome_cliente: string | null;
+  telefone: string;
+  regiao: string | null;
+  cidade: string | null;
+  tipo_cliente: string | null;
+  resumo: string | null;
 };
 
 export type RepresentanteRanking = {
@@ -129,6 +140,16 @@ export async function getRelatorioInternacional(periodo: PeriodFilter): Promise<
   });
   if (error) throw error;
   return data as RelatorioInternacional;
+}
+
+export async function getRelatorioSite(periodo: PeriodFilter): Promise<SiteRow[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('relatorio_site', {
+    p_inicio: periodo.inicio,
+    p_fim: periodo.fim,
+  });
+  if (error) throw error;
+  return (data ?? []) as SiteRow[];
 }
 
 export type ProdutoMencionado = {
