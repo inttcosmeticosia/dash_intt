@@ -43,6 +43,14 @@ export type Database = {
           created_at: string;
         };
       };
+      chat_histories_Ramon: {
+        Row: {
+          id: number;
+          created_at: string;
+          session_id: string | null;
+          message: string | null;
+        };
+      };
     };
     Functions: {
       metricas_atendimento: { Args: { p_inicio: string; p_fim: string }; Returns: Record<string, unknown> };
@@ -52,6 +60,7 @@ export type Database = {
       handoffs_por_representante: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
       relatorio_internacional: { Args: { p_inicio: string; p_fim: string }; Returns: Record<string, unknown> };
       relatorio_site: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
+      relatorio_transferencias_ramon: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
     };
   };
 };

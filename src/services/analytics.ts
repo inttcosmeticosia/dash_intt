@@ -57,6 +57,15 @@ export type SiteRow = {
   resumo: string | null;
 };
 
+export type TransferenciaRamonRow = {
+  data: string;
+  nome_cliente: string | null;
+  telefone_cliente: string;
+  telefone_mencionado: string;
+  resumo: string | null;
+  mensagem: string | null;
+};
+
 export type RepresentanteRanking = {
   representante: string;
   telefone_representante: string | null;
@@ -150,6 +159,18 @@ export async function getRelatorioSite(periodo: PeriodFilter): Promise<SiteRow[]
   });
   if (error) throw error;
   return (data ?? []) as SiteRow[];
+}
+
+export async function getRelatorioTransferenciasRamon(
+  periodo: PeriodFilter
+): Promise<TransferenciaRamonRow[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('relatorio_transferencias_ramon', {
+    p_inicio: periodo.inicio,
+    p_fim: periodo.fim,
+  });
+  if (error) throw error;
+  return (data ?? []) as TransferenciaRamonRow[];
 }
 
 export type ProdutoMencionado = {

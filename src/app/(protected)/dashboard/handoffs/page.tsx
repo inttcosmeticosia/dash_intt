@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import { KpiCard, KpiCardNumber } from '@/components/KpiCard';
 import { BarChartCard, DataTable, SERIES } from '@/components/charts';
+import { ResumoCell } from '@/components/ResumoCell';
 import { useFilters } from '@/contexts/FilterContext';
 import { cleanResumo, downloadCsv, formatDateTime, formatPhone, normalizeName } from '@/lib/utils';
 import {
@@ -199,7 +200,7 @@ export default function HandoffsPage() {
           { key: 'representante', label: 'Representante' },
           { key: 'regiao', label: 'Região' },
           { key: 'tipo_cliente', label: 'Tipo' },
-          { key: 'resumo', label: 'Resumo', format: (v) => cleanResumo(v as string | null) },
+          { key: 'resumo', label: 'Resumo', format: (v) => <ResumoCell value={v} /> },
         ]}
         rows={filtradas as unknown as Record<string, unknown>[]}
       />

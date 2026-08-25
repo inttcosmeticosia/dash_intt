@@ -278,7 +278,7 @@ export function DataTable({
   actions,
 }: {
   title: string;
-  columns: { key: string; label: string; format?: (v: unknown) => string }[];
+  columns: { key: string; label: string; format?: (v: unknown) => ReactNode }[];
   rows: Record<string, unknown>[];
   pageSize?: number;
   actions?: ReactNode;
