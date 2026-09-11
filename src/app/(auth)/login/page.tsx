@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { signIn } from '@/services/analytics';
 
-export default function LoginPage() {
+function safeNextPath(raw: string | null): string {
+  if (!raw) return '/dashboard';
+  // Only same-origin relative dashboard paths — block open redirects
+  if (!raw.startsWith('/dashboard')) return '/dashboard';
+  if (raw.startsWith('//') || raw.includes('\\') || raw.includes('://')) return '/dashboard';
+  return raw;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +27,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.push('/dashboard');
+      router.push(safeNextPath(searchParams.get('next')));
       router.refresh();
     } catch {
       setError('E-mail ou senha incorretos');
@@ -87,5 +96,13 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#141414]" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

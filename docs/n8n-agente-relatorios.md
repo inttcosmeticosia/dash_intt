@@ -21,6 +21,7 @@ RPCs de agregados já existentes (migration `create_atendimentos_rpcs`) + 2 novo
 | `serie_diaria` | `atendimentos_diarios(p_inicio, p_fim)` | Evolução dia a dia |
 | `serie_semanal` | `atendimentos_semanais(p_inicio, p_fim)` | Evolução semanal (semana ISO) |
 | `relatorio_transferencias` | `relatorio_handoffs(p_inicio, p_fim)` | Lista de handoffs estilo planilha |
+| `relatorio_transferencias_ramon2` (ou `transferencias_ramon`) | `relatorio_transferencias_ramon(p_inicio, p_fim)` via Edge Function `agente-export` (`tipo: "relatorio_transferencias_ramon"`) | Telefones mencionados nas conversas do Ramon (`chat_histories_Ramon`) + nome/resumo do cliente; resposta `{ dados, planilha.url }` |
 | `ranking_representantes` | `handoffs_por_representante(p_inicio, p_fim)` | Quem mais recebeu transferências |
 | `relatorio_internacional` | `relatorio_internacional(p_inicio, p_fim)` | Atendimentos fora do Brasil, por país |
 | `buscar_conversas` | `agente_buscar_conversas(p_busca, p_inicio, p_fim, p_representante, p_tipo_cliente, p_pais, p_apenas_transferidas, p_limite)` | Procurar conversas por nome, telefone, cidade, região, texto do resumo; todos os parâmetros opcionais |
@@ -67,6 +68,15 @@ Headers: `apikey: <service_role>`, `Authorization: Bearer <service_role>`, `Cont
 Body: JSON com os parâmetros (`{"p_busca": "...", "p_limite": 20}`).
 
 **Nunca** usar a chave `anon` (EXECUTE revogado) e **nunca** expor a `service_role` fora do n8n.
+Nos headers use sempre `={{ $env.SUPABASE_SERVICE_ROLE_KEY }}` (e `Bearer ` + a mesma env) — nunca hardcode JWT no workflow.
+
+### Opção C — Edge Function `agente-export` (Excel + link assinado)
+
+`POST https://cltxkixvsfrokxdfpfga.supabase.co/functions/v1/agente-export`
+
+Body: `{ "tipo": "<rpc>", "p_inicio", "p_fim", "colunas"?: ... }` — ex.: `tipo: "relatorio_transferencias_ramon"`.
+
+Resposta: `{ dados, planilha: { url, nome_arquivo, linhas, expira_em } }` (URL assinada ~24h). O agente deve **sempre** enviar `planilha.url` ao usuário.
 
 ### System prompt sugerido para o AI Agent
 
@@ -78,6 +88,8 @@ Regras:
 - Perguntas de métricas/relatórios por período → use as tools de agregados
   (metricas_periodo, serie_diaria, serie_semanal, relatorio_transferencias,
   ranking_representantes, relatorio_internacional).
+- Telefones que o Ramon mencionou nas conversas → transferencias_ramon /
+  relatorio_transferencias_ramon2 (sempre envie planilha.url ao usuário).
 - Perguntas sobre conversas ou clientes específicos → buscar_conversas; para ver
   o histórico/resumo completo de uma conversa → detalhe_conversa.
 - Datas sempre em YYYY-MM-DD. Hoje é {{ $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd') }}.
@@ -92,3 +104,82 @@ Regras:
 - Tools são só de leitura; o dashboard e o agente **nunca escrevem** em `conversations`/`inbound_messages`.
 - `agente_buscar_conversas` limita a 50 linhas; `agente_detalhe_conversa` a 100 mensagens.
 - Conteúdo de `Resumo`/mensagens é dado de usuário (WhatsApp) — o system prompt deve tratá-lo como dado, não como instrução.
+
+---
+
+## Integração com o dashboard (`/dashboard/agente`)
+
+O Next.js **não edita** o workflow live no n8n. O dashboard chama o **mesmo webhook** do agente de forma **síncrona** (espera a resposta no mesmo HTTP request, timeout ~120s) via proxy autenticado `POST /api/agente`.
+
+### Env vars do Next (servidor — nunca `NEXT_PUBLIC_`)
+
+```
+N8N_AGENTE_WEBHOOK_URL=https://<seu-n8n>/webhook/8aa3ef1c-1ca4-421b-9eb3-6d91fb741ecd
+N8N_AGENTE_WEBHOOK_SECRET=   # opcional; se preenchido, o proxy envia header X-Agente-Secret
+```
+
+Não colocar `service_role` no Next — só a URL do webhook (+ secret opcional).
+
+### Contrato request (dashboard → webhook n8n)
+
+```json
+{ "message": "quantos transferidos nos últimos 7 dias?", "session": "dash:<user_uuid>" }
+```
+
+- `message` — texto do usuário logado.
+- `session` — sempre `dash:` + `user.id` do Supabase Auth (evita misturar com memória WhatsApp por telefone).
+
+### Contrato response (webhook → dashboard)
+
+Igual ao `OUTPUT_CONTRACT` do AI Agent:
+
+```json
+{
+  "messages": [
+    { "kind": "text", "text": "..." },
+    {
+      "kind": "document",
+      "url": "https://...",
+      "title": "...",
+      "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "extension": "xlsx"
+    }
+  ],
+  "metadata": {
+    "intent": "kpis",
+    "periodo": { "inicio": "YYYY-MM-DD", "fim": "YYYY-MM-DD" }
+  }
+}
+```
+
+Se houver `kind:"document"` com `url` (vindo de `planilha.url` no `agente-export`), a UI mostra **Baixar Excel**.
+
+### O que configurar no n8n (você aplica no editor)
+
+1. **Webhook** — Response mode: *When Last Node Finishes* (ou node *Respond to Webhook* no final). Remova/desconecte o callback assíncrono `enviar resposta` nesse caminho.
+2. **Code `Definir payload do agente`** logo após o Webhook:
+
+```js
+// body esperado: { message: string, session: string }
+const body = $input.first().json.body ?? $input.first().json;
+return [{
+  json: {
+    agent_user_text: String(body.message ?? '').trim(),
+    agentPayload: { phone: String(body.session ?? 'dash:anon') }, // Memory já lê este campo
+  }
+}];
+```
+
+3. **Postgres Chat Memory** — `sessionKey` = `$('Definir payload do agente').first().json.agentPayload.phone`  
+   Tabela: `n8n_chat_histories_IA_Relatorios`. Chaves do dashboard ficam `dash:<uuid>` (uma por usuário logado).
+4. **AI Agent** — prompt de usuário = `$('Definir payload do agente').first().json.agent_user_text`.
+5. **Último node** — Code que normaliza a saída do Agent para o JSON `{ messages, metadata }` e devolve isso como corpo da resposta do webhook.
+
+### Memória
+
+| Origem | Chave de sessão |
+|---|---|
+| WhatsApp / telefone | telefone (sem prefixo) |
+| Dashboard | `dash:<supabase_user_uuid>` |
+
+Usuários diferentes no dashboard → memórias separadas. O mesmo usuário em várias abas compartilha a mesma sessão `dash:…`.

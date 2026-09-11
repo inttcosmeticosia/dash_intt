@@ -27,18 +27,28 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login');
-  const isProtected = request.nextUrl.pathname.startsWith('/dashboard');
+  const path = request.nextUrl.pathname;
+  const isAuthPage = path.startsWith('/login');
+  const isProtectedPage = path.startsWith('/dashboard');
+  const isProtectedApi = path.startsWith('/api/');
 
-  if (!user && isProtected) {
+  // APIs: never redirect — return 401 so clients don't follow HTML login
+  if (!user && isProtectedApi) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  }
+
+  if (!user && isProtectedPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    url.search = '';
+    url.searchParams.set('next', path);
     return NextResponse.redirect(url);
   }
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
+    url.search = '';
     return NextResponse.redirect(url);
   }
 

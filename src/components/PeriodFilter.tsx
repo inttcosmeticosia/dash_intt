@@ -24,7 +24,7 @@ export function PeriodFilter() {
   const { periodo, setPeriodo } = useFilters();
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
       <div className="flex overflow-hidden rounded-lg border border-zinc-200">
         {presets.map((p) => {
           const alvo = periodoDe(p.dias);
@@ -34,10 +34,10 @@ export function PeriodFilter() {
               key={p.label}
               onClick={() => setPeriodo(alvo)}
               className={cn(
-                'px-3 py-1.5 text-xs font-medium transition-colors',
+                'px-2.5 py-1.5 text-xs font-medium transition-colors sm:px-3',
                 ativo
                   ? 'bg-brand-600 text-white'
-                  : 'bg-white text-zinc-600 hover:bg-zinc-50:bg-zinc-800'
+                  : 'bg-white text-zinc-600 hover:bg-zinc-50'
               )}
             >
               {p.label}
@@ -45,19 +45,21 @@ export function PeriodFilter() {
           );
         })}
       </div>
-      <input
-        type="date"
-        value={periodo.inicio}
-        onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })}
-        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm"
-      />
-      <span className="text-zinc-400">até</span>
-      <input
-        type="date"
-        value={periodo.fim}
-        onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })}
-        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm"
-      />
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-none">
+        <input
+          type="date"
+          value={periodo.inicio}
+          onChange={(e) => setPeriodo({ ...periodo, inicio: e.target.value })}
+          className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm sm:flex-none sm:px-3"
+        />
+        <span className="text-zinc-400">até</span>
+        <input
+          type="date"
+          value={periodo.fim}
+          onChange={(e) => setPeriodo({ ...periodo, fim: e.target.value })}
+          className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm sm:flex-none sm:px-3"
+        />
+      </div>
     </div>
   );
 }
