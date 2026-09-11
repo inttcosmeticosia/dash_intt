@@ -106,9 +106,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <FilterProvider>
-      <div className="flex min-h-screen bg-zinc-50">
+      <div
+        className={cn(
+          'flex bg-zinc-50',
+          // Agente: lock to viewport so only the chat pane scrolls (not header/sidebar/composer)
+          isAgente ? 'h-dvh max-h-dvh overflow-hidden' : 'min-h-screen'
+        )}
+      >
         {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-y-auto bg-[#1d1d1d] md:flex">
+        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto bg-[#1d1d1d] md:flex">
           <SidebarNav pathname={pathname} onLogout={handleLogout} />
         </aside>
 
@@ -143,7 +149,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           />
         </aside>
 
-        <main className={cn('flex min-w-0 flex-1 flex-col', isAgente ? 'min-h-screen overflow-hidden' : 'overflow-auto')}>
+        <main
+          className={cn(
+            'flex min-w-0 flex-1 flex-col',
+            isAgente ? 'h-full min-h-0 overflow-hidden' : 'overflow-auto'
+          )}
+        >
           <header className="sticky top-0 z-30 shrink-0 border-b border-zinc-200 bg-white/90 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-6 sm:py-4">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -169,7 +180,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </header>
-          <div className={cn(isAgente ? 'flex min-h-0 flex-1 flex-col' : 'p-4 sm:p-6')}>{children}</div>
+          <div
+            className={cn(
+              isAgente ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'p-4 sm:p-6'
+            )}
+          >
+            {children}
+          </div>
         </main>
       </div>
     </FilterProvider>

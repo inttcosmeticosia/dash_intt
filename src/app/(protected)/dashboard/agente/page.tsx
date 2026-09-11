@@ -290,6 +290,7 @@ export default function AgentePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
   const loadingConvIdRef = useRef<string | null>(null);
@@ -513,10 +514,18 @@ export default function AgentePage() {
   const titulo = nome ? `${saudacao}, ${nome}` : saudacao;
   const showLoadingInPanel = loading && loadingConvId === activeId;
 
+  useEffect(() => {
+    if (vazio) return;
+    const el = messagesScrollRef.current;
+    // #region agent log
+    fetch('http://127.0.0.1:7617/ingest/48344d34-49d3-4296-a2de-2c9892396c64',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7e6ed1'},body:JSON.stringify({sessionId:'7e6ed1',runId:'layout-fix',hypothesisId:'A',location:'agente/page.tsx:scrollMetrics',message:'layout scroll metrics',data:{docScrollH:document.documentElement.scrollHeight,winH:window.innerHeight,docOverflows:document.documentElement.scrollHeight>window.innerHeight+2,msgClientH:el?.clientHeight??null,msgScrollH:el?.scrollHeight??null,msgCanScroll:!!el&&el.scrollHeight>el.clientHeight+2},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  }, [itens.length, activeId, vazio]);
+
   return (
     <div
       className={cn(
-        'relative flex h-full min-h-0',
+        'relative flex h-full min-h-0 flex-1 overflow-hidden',
         'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50 via-zinc-50 to-zinc-50'
       )}
     >
@@ -536,7 +545,7 @@ export default function AgentePage() {
         newDisabled={loading}
       />
 
-      <div className="relative flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile chats toggle */}
         <div className="flex shrink-0 items-center gap-2 border-b border-zinc-200/70 bg-white/60 px-3 py-2 backdrop-blur-sm md:hidden">
           <button
@@ -625,7 +634,10 @@ export default function AgentePage() {
           </div>
         ) : (
           <>
-            <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div
+              ref={messagesScrollRef}
+              className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6"
+            >
               <div className="mx-auto flex max-w-2xl flex-col gap-4">
                 {itens.map((item, i) => {
                   const key = `${activeId}-${i}-${item.role}`;
@@ -704,7 +716,7 @@ export default function AgentePage() {
               </div>
             </div>
 
-            <div className="relative border-t border-zinc-200/70 bg-white/70 backdrop-blur-sm">
+            <div className="relative shrink-0 border-t border-zinc-200/70 bg-white/70 backdrop-blur-sm">
               <Composer
                 value={input}
                 onChange={setInput}

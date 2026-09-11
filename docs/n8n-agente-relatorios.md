@@ -170,8 +170,9 @@ return [{
 }];
 ```
 
-3. **Postgres Chat Memory** — `sessionKey` = `$('Definir payload do agente').first().json.agentPayload.phone`  
-   Tabela: `n8n_chat_histories_IA_Relatorios`. Chaves do dashboard ficam `dash:<uuid>` (uma por usuário logado).
+3. **Postgres Chat Memory** — `sessionKey` = `$json.body.session` (ou o path equivalente do webhook)  
+   Tabela: **`n8n_chat_histories_ia_relatorios`** (colunas `id`, `session_id`, `message`).  
+   **NÃO** use `dashboard_agente_conversations` — essa tabela é só do dashboard Next.js (lista de chats na UI: `user_id` + `conversations` jsonb) e **não** serve para o node de memória do LangChain.
 4. **AI Agent** — prompt de usuário = `$('Definir payload do agente').first().json.agent_user_text`.
 5. **Último node** — Code que normaliza a saída do Agent para o JSON `{ messages, metadata }` e devolve isso como corpo da resposta do webhook.
 
