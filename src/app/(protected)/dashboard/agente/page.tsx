@@ -19,7 +19,10 @@ import {
 import {
   createConversation,
   DEFAULT_CONVERSATION_TITLE,
+  fetchRemoteConversations,
   loadConversations,
+  mergeConversationLists,
+  persistRemoteConversations,
   saveConversations,
   titleFromFirstMessage,
   withDerivedTitle,
@@ -299,12 +302,24 @@ export default function AgentePage() {
   useEffect(() => {
     let cancelled = false;
     setMounted(true);
-    void getProfile().then((p) => {
+    void getProfile().then(async (p) => {
       if (cancelled || !p?.id) return;
       setUserId(p.id);
       setNome(primeiroNome(p.nome));
 
-      const stored = loadConversations(p.id).map(withDerivedTitle);
+      const local = loadConversations(p.id).map(withDerivedTitle);
+      let remote: AgenteConversation[] = [];
+      try {
+        remote = await fetchRemoteConversations(p.id);
+      } catch {
+        // Offline / RLS — keep local cache
+      }
+      if (cancelled) return;
+
+      const stored = mergeConversationLists(local, remote);
+      // #region agent log
+      fetch('http://127.0.0.1:7617/ingest/48344d34-49d3-4296-a2de-2c9892396c64',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7e6ed1'},body:JSON.stringify({sessionId:'7e6ed1',runId:'post-fix',hypothesisId:'E',location:'agente/page.tsx:hydrate',message:'hydrate merge local+remote',data:{userIdSuffix:p.id.slice(-6),localCount:local.length,remoteCount:remote.length,mergedCount:stored.length,mergedWithMsgs:stored.filter((c)=>c.messages.length>0).length,ua:typeof navigator!=='undefined'?navigator.userAgent.slice(0,80):''},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       setConversations((prev) => {
         // Don't wipe in-flight / already-typed chats if hydrate arrives late
@@ -326,6 +341,7 @@ export default function AgentePage() {
           list = [createConversation()];
         }
         saveConversations(p.id, list);
+        void persistRemoteConversations(p.id, list).catch(() => {});
         const prefer =
           (activeIdRef.current && list.find((c) => c.id === activeIdRef.current)?.id) ||
           list.find((c) => c.messages.length > 0)?.id ||
@@ -345,6 +361,7 @@ export default function AgentePage() {
     // Never persist an empty wipe over real history during mount races
     if (conversations.length === 0) return;
     saveConversations(userId, conversations);
+    void persistRemoteConversations(userId, conversations).catch(() => {});
   }, [conversations, userId]);
 
   const active = conversations.find((c) => c.id === activeId) ?? null;
@@ -565,7 +582,7 @@ export default function AgentePage() {
               </p>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
                 Pergunte sobre KPIs, transferências ou produtos citados. Cada conversa tem memória
-                própria neste dashboard.
+                própria e sincroniza com a sua conta.
               </p>
 
               <div className="mt-8 w-full animate-[agente-fade-in_0.55s_ease-out_0.12s_both]">

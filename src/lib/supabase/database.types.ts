@@ -51,6 +51,22 @@ export type Database = {
           message: string | null;
         };
       };
+      dashboard_agente_conversations: {
+        Row: {
+          user_id: string;
+          conversations: unknown;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          conversations?: unknown;
+          updated_at?: string;
+        };
+        Update: {
+          conversations?: unknown;
+          updated_at?: string;
+        };
+      };
     };
     Functions: {
       metricas_atendimento: { Args: { p_inicio: string; p_fim: string }; Returns: Record<string, unknown> };
