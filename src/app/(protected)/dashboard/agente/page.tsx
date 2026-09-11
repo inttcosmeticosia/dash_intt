@@ -682,13 +682,20 @@ export default function AgentePage() {
                             />
                           );
                         }
-                        if (msg.kind === 'document' && msg.url) {
+                        if (
+                          msg.kind === 'document' &&
+                          typeof msg.url === 'string' &&
+                          /^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/sign\//i.test(
+                            msg.url
+                          )
+                        ) {
                           return (
                             <div key={j} className="flex">
                               <a
                                 href={msg.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                download={msg.title ? `${msg.title}.xlsx` : undefined}
                                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
                               >
                                 <Download className="h-4 w-4" />

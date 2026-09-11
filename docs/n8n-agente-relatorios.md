@@ -75,6 +75,8 @@ Nos headers use sempre `={{ $env.SUPABASE_SERVICE_ROLE_KEY }}` (e `Bearer ` + a 
 `POST https://cltxkixvsfrokxdfpfga.supabase.co/functions/v1/agente-export`
 
 Body: `{ "tipo": "<rpc>", "p_inicio", "p_fim", "colunas"?: ... }` — ex.: `tipo: "relatorio_transferencias_ramon"`.
+Resposta: `{ dados, planilha: { url, nome_arquivo, linhas, expira_em } | null, aviso? }`.
+Se o resultado não tiver linhas para exportar, `planilha` vem `null` (não invente botão/Excel).
 
 Resposta: `{ dados, planilha: { url, nome_arquivo, linhas, expira_em } }` (URL assinada ~24h). O agente deve **sempre** enviar `planilha.url` ao usuário.
 

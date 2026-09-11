@@ -154,6 +154,35 @@ Deno.serve(async (req: Request) => {
     }
 
     const { workbook, linhas, nomeArquivo } = buildWorkbook(tipo, dados, rpcParams, colunas);
+
+    // No rows worth exporting → return dados only (agent must not invent a download link)
+    const arrayEmpty = Array.isArray(dados) && dados.length === 0;
+    const intlEmpty =
+      tipo === 'relatorio_internacional' &&
+      !!dados &&
+      typeof dados === 'object' &&
+      !Array.isArray(dados) &&
+      Number((dados as Record<string, unknown>).total ?? 0) === 0 &&
+      (!Array.isArray((dados as Record<string, unknown>).conversas) ||
+        ((dados as Record<string, unknown>).conversas as unknown[]).length === 0);
+
+    if (linhas <= 0 || arrayEmpty || intlEmpty) {
+      console.log(
+        JSON.stringify({
+          event: 'agente-export-skip-planilha',
+          tipo,
+          linhas,
+          arrayEmpty,
+          intlEmpty,
+        })
+      );
+      return json(200, {
+        dados,
+        planilha: null,
+        aviso: 'Sem linhas para exportar — planilha omitida.',
+      });
+    }
+
     const bytes = workbookToBytes(workbook);
     const path = storagePath(tipo, nomeArquivo);
 
@@ -161,6 +190,7 @@ Deno.serve(async (req: Request) => {
       .from(BUCKET)
       .upload(path, bytes, {
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        contentDisposition: `attachment; filename="${nomeArquivo}"`,
         upsert: false,
       });
 
@@ -177,6 +207,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const expira = new Date(Date.now() + SIGNED_TTL_SECONDS * 1000).toISOString();
+
+    console.log(
+      JSON.stringify({
+        event: 'agente-export-ok',
+        tipo,
+        linhas,
+        path,
+      })
+    );
 
     return json(200, {
       dados,
