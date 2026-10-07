@@ -24,7 +24,7 @@ import { signOut } from '@/services/analytics';
 const nav = [
   { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
   { href: '/dashboard/handoffs', label: 'Transferências', icon: UserCheck },
-  { href: '/dashboard/transferencias-ramon', label: 'Transferencias Ramon', icon: PhoneForwarded },
+  { href: '/dashboard/transferencias-ramon', label: 'Transferência Atendimento', icon: PhoneForwarded },
   { href: '/dashboard/site', label: 'Site', icon: ExternalLink },
   { href: '/dashboard/produtos', label: 'Produtos', icon: Package },
   { href: '/dashboard/internacional', label: 'Internacional', icon: Globe },
