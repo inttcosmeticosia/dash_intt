@@ -31,6 +31,10 @@ const TIPOS: Record<string, { rpc: string; params: string[] }> = {
     params: ['p_inicio', 'p_fim'],
   },
   relatorio_internacional: { rpc: 'relatorio_internacional', params: ['p_inicio', 'p_fim'] },
+  relatorio_transferencias: {
+    rpc: 'relatorio_transferencias',
+    params: ['p_inicio', 'p_fim', 'p_origem'],
+  },
   relatorio_transferencias_ramon: {
     rpc: 'relatorio_transferencias_ramon',
     params: ['p_inicio', 'p_fim'],

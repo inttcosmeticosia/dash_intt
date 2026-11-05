@@ -9,6 +9,10 @@ export type MetricasAtendimento = {
   novos_atendimentos: number;
   conversas_ativas: number;
   transferidos: number;
+  transferidos_pela_ia?: number;
+  transferidos_pelo_atendimento_humano?: number;
+  /** novos atendimentos do período que foram transferidos (base da taxa) */
+  novos_transferidos?: number;
   taxa_transferencia: number;
   internacionais: number;
   periodo_anterior: {

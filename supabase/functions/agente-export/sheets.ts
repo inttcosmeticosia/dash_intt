@@ -210,6 +210,7 @@ export function buildWorkbook(
     case 'atendimentos_diarios':
     case 'atendimentos_semanais':
     case 'relatorio_handoffs':
+    case 'relatorio_transferencias':
     case 'relatorio_transferencias_ramon':
     case 'handoffs_por_representante':
     case 'agente_buscar_conversas':

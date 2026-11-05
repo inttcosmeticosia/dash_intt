@@ -84,7 +84,11 @@ export default function DashboardPage() {
           value={Number(metricas?.transferidos ?? 0)}
           subtitle={`${anterior?.transferidos ?? 0} no período anterior`}
         />
-        <KpiCard label="Taxa de Transferência" value={`${metricas?.taxa_transferencia ?? 0}%`} />
+        <KpiCard
+          label="Taxa de Transferência"
+          value={`${metricas?.taxa_transferencia ?? 0}%`}
+          subtitle={`${metricas?.novos_transferidos ?? 0} de ${metricas?.novos_atendimentos ?? 0} novos transferidos`}
+        />
         <KpiCardNumber label="Internacionais" value={Number(metricas?.internacionais ?? 0)} />
       </div>
 
