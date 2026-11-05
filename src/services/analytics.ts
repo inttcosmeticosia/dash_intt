@@ -33,18 +33,25 @@ export type AtendimentoSemanal = {
   transferidos: number;
 };
 
-export type HandoffRow = {
+// Uma linha por cliente por dia (fonte: public.handoff_events via RPC relatorio_transferencias).
+// origem: 'ia' (agente transferiu), 'humano' (atendente passou o contato) ou 'humano+ia'.
+export type OrigemTransferencia = 'ia' | 'humano';
+
+export type TransferenciaRow = {
   data_handoff: string;
   nome_cliente: string | null;
   telefone_cliente: string;
   razao_social: string | null;
-  representante: string;
+  origem: string;
+  destino: string;
+  representante: string | null;
   telefone_representante: string | null;
+  motivo: string | null;
   regiao: string | null;
   tipo_cliente: string | null;
-  motivo: string | null;
   pais: string | null;
   resumo: string | null;
+  mensagem: string | null;
 };
 
 export type SiteRow = {
@@ -55,22 +62,6 @@ export type SiteRow = {
   cidade: string | null;
   tipo_cliente: string | null;
   resumo: string | null;
-};
-
-export type TransferenciaRamonRow = {
-  data: string;
-  nome_cliente: string | null;
-  telefone_cliente: string;
-  telefone_mencionado: string;
-  resumo: string | null;
-  mensagem: string | null;
-};
-
-export type RepresentanteRanking = {
-  representante: string;
-  telefone_representante: string | null;
-  total: number;
-  ultima_transferencia: string;
 };
 
 export type ConversaInternacional = {
@@ -121,24 +112,18 @@ export async function getAtendimentosSemanais(periodo: PeriodFilter): Promise<At
   return (data ?? []) as AtendimentoSemanal[];
 }
 
-export async function getRelatorioHandoffs(periodo: PeriodFilter): Promise<HandoffRow[]> {
+export async function getRelatorioTransferencias(
+  periodo: PeriodFilter,
+  origem: OrigemTransferencia | null = null
+): Promise<TransferenciaRow[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc('relatorio_handoffs', {
+  const { data, error } = await supabase.rpc('relatorio_transferencias', {
     p_inicio: periodo.inicio,
     p_fim: periodo.fim,
+    p_origem: origem,
   });
   if (error) throw error;
-  return (data ?? []) as HandoffRow[];
-}
-
-export async function getHandoffsPorRepresentante(periodo: PeriodFilter): Promise<RepresentanteRanking[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc('handoffs_por_representante', {
-    p_inicio: periodo.inicio,
-    p_fim: periodo.fim,
-  });
-  if (error) throw error;
-  return (data ?? []) as RepresentanteRanking[];
+  return (data ?? []) as TransferenciaRow[];
 }
 
 export async function getRelatorioInternacional(periodo: PeriodFilter): Promise<RelatorioInternacional> {
@@ -159,18 +144,6 @@ export async function getRelatorioSite(periodo: PeriodFilter): Promise<SiteRow[]
   });
   if (error) throw error;
   return (data ?? []) as SiteRow[];
-}
-
-export async function getRelatorioTransferenciasRamon(
-  periodo: PeriodFilter
-): Promise<TransferenciaRamonRow[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc('relatorio_transferencias_ramon', {
-    p_inicio: periodo.inicio,
-    p_fim: periodo.fim,
-  });
-  if (error) throw error;
-  return (data ?? []) as TransferenciaRamonRow[];
 }
 
 export type ProdutoMencionado = {

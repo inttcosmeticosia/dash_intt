@@ -76,6 +76,10 @@ export type Database = {
       handoffs_por_representante: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
       relatorio_internacional: { Args: { p_inicio: string; p_fim: string }; Returns: Record<string, unknown> };
       relatorio_site: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
+      relatorio_transferencias: {
+        Args: { p_inicio: string; p_fim: string; p_origem?: string | null };
+        Returns: unknown;
+      };
       relatorio_transferencias_ramon: { Args: { p_inicio: string; p_fim: string }; Returns: unknown };
     };
   };
