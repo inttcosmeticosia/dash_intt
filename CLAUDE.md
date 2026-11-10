@@ -29,6 +29,10 @@ Agente WhatsApp (n8n) → grava conversations / inbound_messages (Supabase)
   - `/dashboard/transferencias-ramon` — "Transferência Atendimento": mesma view travada em origem `humano` (rota mantida por compatibilidade de link)
   - Ambas renderizam `src/components/TransferenciasView.tsx` (prop `origemFixa`); agregações (ranking/região/tipo) são feitas no client a partir das linhas
   - `/dashboard/internacional` — atendimentos fora do Brasil por país + export CSV (RPC `relatorio_internacional`)
+  - `/dashboard/agente` — chat com o [IA plataforma] (n8n) via `/api/agente`; item `kind:"prompt_proposta"` renderiza `components/PromptPropostaCard.tsx` (antes/depois + Publicar/Editar/Descartar)
+  - `/dashboard/prompt-cris` — versão no ar do prompt da Cris, regras da equipe, proposta pendente, histórico com Restaurar, prompt completo
+  - Sidebar (`DashboardShell`) agrupada: Atendimento / Clientes / Inteligência Artificial
+  - Coluna Tipo das transferências: `"Tipo · fonte"` (formulário > atendente > IA) de `analytics_tipo_cliente_resolvido` (migration `20261110100000`); o client agrupa só pelo tipo
 
 ### Middleware
 - `src/middleware.ts` — matcher `['/dashboard/:path*', '/login']`
@@ -98,6 +102,14 @@ Todas `SECURITY DEFINER`, `set search_path = ''`, `EXECUTE` revogado de `public`
 - **ERROR — view SECURITY DEFINER:** `v_files_with_storage`
 - **WARN — RPCs legados Mercos ainda executáveis por `anon`** (os RPCs novos de atendimento NÃO são — anon revogado)
 - **WARN — `function_search_path_mutable`** em ~20 funções legadas; extensões no schema `public`
+
+### Prompt da Cris versionado (`ia_prompts`, 2026-11-10)
+
+- Tabela `public.ia_prompts` (RLS on, sem acesso anon/authenticated): `agente` (`cris_whatsapp`), `versao`, `status` (proposta/ativa/arquivada/descartada; 1 ativa por agente), `conteudo`, `base_versao`, `alteracoes` jsonb, `pedido`, `motivo`, `autor`. v0 = original copiado do n8n; v1 = mesmo texto com `{{AGORA}}` e bloco `<regras_ajustaveis>` (prevalece sobre o resto)
+- n8n `[5] Agente de IA`: node **Montar prompt** (Code, entre If-false e AI Agent1) lê a versão ativa via PostgREST a cada mensagem, troca `{{AGORA}}` pela hora SP, guarda cópia em staticData (fallback se o Supabase falhar) e o AI Agent1 usa `$('Montar prompt').first().json.system_prompt`
+- Funções service_role (usadas pelo n8n [IA plataforma]): `ia_prompt_ler`, `ia_prompt_propor` (itens `{adicionar_regra}` ou `{buscar,substituir}` com trecho único; valida), `ia_prompt_publicar` (exige base_versao = ativa), `ia_prompt_descartar`, `ia_prompt_historico`, `ia_prompt_restaurar`; `ia_prompt_validar` protege `output_contract`, `json_formatting_rules`, `handoff_payload`, `tools`, `{{AGORA}}` e tamanho ≥70%
+- `ia_conversa_historico(p_telefone, p_limite)` — conversa legível de `n8n_chat_histories` (cliente × Cris com intent/notas/handoff) para "por que a Cris respondeu assim"
+- Wrappers do painel (authenticated + `analytics_check_acesso`, autor = e-mail do JWT): `dash_ia_prompt_atual/proposta/propor/publicar/descartar/historico/restaurar` (migration `20261110130000`); client em `src/services/iaPrompt.ts`
 
 ## Env vars (`.env.example`)
 

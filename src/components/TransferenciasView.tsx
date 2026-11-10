@@ -24,6 +24,32 @@ const ORIGEM_LABEL: Record<string, string> = {
 
 const temOrigem = (l: TransferenciaRow, o: OrigemTransferencia) => l.origem.split('+').includes(o);
 
+// tipo_cliente vem como "Lojista · formulário" | "Revenda · atendente" | "Consumidor Final · IA".
+const tipoBase = (t: string | null | undefined) => t?.split(' · ')[0] ?? null;
+const tipoFonte = (t: string | null | undefined) => t?.split(' · ')[1] ?? null;
+
+const FONTE_ESTILO: Record<string, string> = {
+  formulário: 'bg-emerald-50 text-emerald-700',
+  atendente: 'bg-sky-50 text-sky-700',
+  IA: 'bg-zinc-100 text-zinc-600',
+};
+
+function TipoCell({ value }: { value: unknown }) {
+  const t = value ? String(value) : null;
+  if (!t) return <span className="text-zinc-400">—</span>;
+  const fonte = tipoFonte(t);
+  return (
+    <span className="whitespace-nowrap">
+      {tipoBase(t)}
+      {fonte && (
+        <span className={`ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${FONTE_ESTILO[fonte] ?? FONTE_ESTILO.IA}`}>
+          {fonte}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** Conta ocorrências por chave normalizada, exibindo a grafia mais frequente. */
 function contarPor(linhas: TransferenciaRow[], campo: (l: TransferenciaRow) => string | null | undefined) {
   const grupos = new Map<string, { total: number; grafias: Map<string, number> }>();
@@ -81,7 +107,7 @@ export function TransferenciasView({ origemFixa }: Props) {
 
   const porDestino = useMemo(() => contarPor(base, (l) => l.destino), [base]);
   const porRegiao = useMemo(() => contarPor(base, (l) => l.regiao), [base]);
-  const porTipo = useMemo(() => contarPor(base, (l) => l.tipo_cliente), [base]);
+  const porTipo = useMemo(() => contarPor(base, (l) => tipoBase(l.tipo_cliente)), [base]);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -169,6 +195,12 @@ export function TransferenciasView({ origemFixa }: Props) {
         layout="horizontal"
         yWidth={130}
       />
+      <p className="-mt-4 text-xs text-zinc-500">
+        Como o tipo é definido: <b>formulário</b> = o próprio cliente marcou no site;{' '}
+        <b>atendente</b> = a IA não identificou revenda, mas o atendimento humano encaminhou para um
+        representante; <b>IA</b> = classificação da IA na conversa (sem sinal de revenda — quantidade ≥ 7,
+        loja, CNPJ, atacado — ela assume Consumidor Final).
+      </p>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-64 flex-1">
@@ -227,7 +259,7 @@ export function TransferenciasView({ origemFixa }: Props) {
           { key: 'destino', label: 'Destino' },
           { key: 'telefone_representante', label: 'Tel. Representante', format: (v) => (v ? formatPhone(v as string) : '—') },
           { key: 'regiao', label: 'Região' },
-          { key: 'tipo_cliente', label: 'Tipo' },
+          { key: 'tipo_cliente', label: 'Tipo', format: (v) => <TipoCell value={v} /> },
           origemFixa === 'humano'
             ? { key: 'mensagem', label: 'Mensagem', format: (v) => <ResumoCell value={v} /> }
             : { key: 'resumo', label: 'Resumo', format: (v) => <ResumoCell value={v} /> },

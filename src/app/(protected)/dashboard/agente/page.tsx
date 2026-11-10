@@ -14,8 +14,10 @@ import {
   Package,
   Trash2,
   Users,
+  Wand2,
   X,
 } from 'lucide-react';
+import { PromptPropostaCard } from '@/components/PromptPropostaCard';
 import {
   createConversation,
   DEFAULT_CONVERSATION_TITLE,
@@ -49,6 +51,11 @@ const SUGGESTIONS = [
     label: 'Produtos citados',
     prompt: 'Quais produtos os clientes mais citaram nos últimos 30 dias?',
     icon: Package,
+  },
+  {
+    label: 'Analisar resposta da Cris',
+    prompt: 'Por que a Cris respondeu assim ao cliente do número ',
+    icon: Wand2,
   },
 ] as const;
 
@@ -514,14 +521,6 @@ export default function AgentePage() {
   const titulo = nome ? `${saudacao}, ${nome}` : saudacao;
   const showLoadingInPanel = loading && loadingConvId === activeId;
 
-  useEffect(() => {
-    if (vazio) return;
-    const el = messagesScrollRef.current;
-    // #region agent log
-    fetch('http://127.0.0.1:7617/ingest/48344d34-49d3-4296-a2de-2c9892396c64',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7e6ed1'},body:JSON.stringify({sessionId:'7e6ed1',runId:'layout-fix',hypothesisId:'A',location:'agente/page.tsx:scrollMetrics',message:'layout scroll metrics',data:{docScrollH:document.documentElement.scrollHeight,winH:window.innerHeight,docOverflows:document.documentElement.scrollHeight>window.innerHeight+2,msgClientH:el?.clientHeight??null,msgScrollH:el?.scrollHeight??null,msgCanScroll:!!el&&el.scrollHeight>el.clientHeight+2},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }, [itens.length, activeId, vazio]);
-
   return (
     <div
       className={cn(
@@ -615,7 +614,13 @@ export default function AgentePage() {
                     <button
                       key={prompt}
                       type="button"
-                      onClick={() => void enviar(prompt)}
+                      onClick={() => {
+                        // Sugestão que termina em espaço precisa de complemento (ex.: telefone): só preenche.
+                        if (prompt.endsWith(' ')) {
+                          setInput(prompt);
+                          inputRef.current?.focus();
+                        } else void enviar(prompt);
+                      }}
                       className={cn(
                         'inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white/90 px-3.5 py-2',
                         'text-sm text-zinc-700 shadow-sm transition-all',
@@ -706,6 +711,9 @@ export default function AgentePage() {
                               </a>
                             </div>
                           );
+                        }
+                        if (msg.kind === 'prompt_proposta' && Number.isFinite(Number(msg.proposta_id))) {
+                          return <PromptPropostaCard key={j} propostaId={Number(msg.proposta_id)} />;
                         }
                         return null;
                       })}

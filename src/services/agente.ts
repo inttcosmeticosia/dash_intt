@@ -8,7 +8,8 @@ export type AgenteMessage =
       extension?: string;
       source?: string;
       id?: string;
-    };
+    }
+  | { kind: 'prompt_proposta'; proposta_id: number };
 
 export type AgenteResponse = {
   messages: AgenteMessage[];
