@@ -68,7 +68,7 @@ function contarPor(linhas: TransferenciaRow[], campo: (l: TransferenciaRow) => s
 }
 
 type Props = {
-  /** Fixa a origem (ex.: aba "Atendimento Humano" = 'humano'); sem ela a página mostra o filtro. */
+  /** Fixa a origem (ex.: aba "Transferência Atendimento" = 'humano'); sem ela a página mostra o filtro. */
   origemFixa?: OrigemTransferencia;
 };
 

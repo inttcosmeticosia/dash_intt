@@ -26,7 +26,7 @@ Agente WhatsApp (n8n) → grava conversations / inbound_messages (Supabase)
 - `(protected)/dashboard/*` — todas client components, período via `useFilters` (default últimos 30 dias):
   - `/dashboard` — Visão Geral: KPIs (novos, ativos, transferidos, taxa, internacionais) + série diária + série semanal (RPCs `metricas_atendimento`, `atendimentos_diarios`, `atendimentos_semanais`)
   - `/dashboard/handoffs` — Transferências (IA + atendimento humano): filtro de origem, KPIs, ranking por destino, região, tipo, tabela + CSV (RPC `relatorio_transferencias`)
-  - `/dashboard/atendimento-humano` — "Atendimento Humano": mesma view travada em origem `humano`; a RPC usa `analytics_handoffs_fonte(..., 'humano')` (só eventos humanos, sem dados da IA). `/dashboard/transferencias-ramon` redireciona para cá
+  - `/dashboard/transferencias-ramon` — "Transferência Atendimento": mesma view travada em origem `humano` (rota mantida por compatibilidade de link)
   - Ambas renderizam `src/components/TransferenciasView.tsx` (prop `origemFixa`); agregações (ranking/região/tipo) são feitas no client a partir das linhas
   - `/dashboard/internacional` — atendimentos fora do Brasil por país + export CSV (RPC `relatorio_internacional`)
   - `/dashboard/agente` — chat com o [IA plataforma] (n8n) via `/api/agente`; item `kind:"prompt_proposta"` renderiza `components/PromptPropostaCard.tsx` (antes/depois + Publicar/Editar/Descartar)
