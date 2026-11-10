@@ -154,6 +154,8 @@ export function PromptPropostaCard({ propostaId, onChange }: Props) {
   const st = STATUS[p.status];
   const pendente = p.status === 'proposta';
   const desatualizada = pendente && p.base_versao !== p.versao_ativa;
+  // Edição no texto inteiro (página Prompt da Cris): para mudar de novo, edita por lá.
+  const edicaoCompleta = p.alteracoes.some((a) => 'edicao_completa' in a);
 
   return (
     <div className="w-full max-w-[95%] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -185,10 +187,10 @@ export function PromptPropostaCard({ propostaId, onChange }: Props) {
         {p.itens.map((item, i) => (
           <div key={i} className="space-y-2">
             <p className="text-xs font-medium text-zinc-500">
-              {i + 1}. {TIPO[item.tipo] ?? item.tipo}
+              {i + 1}. {item.antes === '' ? 'Texto adicionado' : (TIPO[item.tipo] ?? item.tipo)}
             </p>
             <div className="flex flex-col gap-2 lg:flex-row">
-              {item.tipo === 'nova_regra' ? (
+              {item.tipo === 'nova_regra' || item.antes === '' ? (
                 <Bloco titulo="Antes" texto="(regra não existia)" tom="antes" />
               ) : (
                 <Bloco titulo="Antes" texto={item.antes ?? ''} tom="antes" />
@@ -230,15 +232,17 @@ export function PromptPropostaCard({ propostaId, onChange }: Props) {
                 {acao === 'publicar' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
                 Publicar
               </button>
-              <button
-                type="button"
-                onClick={abrirEdicao}
-                disabled={acao !== null || desatualizada}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 hover:border-brand-300 hover:text-brand-800 disabled:opacity-50"
-              >
-                <Pencil className="h-4 w-4" />
-                Editar
-              </button>
+              {!edicaoCompleta && (
+                <button
+                  type="button"
+                  onClick={abrirEdicao}
+                  disabled={acao !== null || desatualizada}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 hover:border-brand-300 hover:text-brand-800 disabled:opacity-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => void descartar()}

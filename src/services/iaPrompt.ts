@@ -90,3 +90,11 @@ export const getHistoricoPrompt = (limite = 30) =>
 
 export const restaurarVersao = (versao: number, motivo?: string) =>
   rpc<{ ok: true; versao: number }>('dash_ia_prompt_restaurar', { p_versao: versao, p_motivo: motivo ?? null });
+
+/** Salva o prompt inteiro editado à mão como proposta (não publica). */
+export const proporConteudo = (conteudo: string, trechos: unknown[], motivo?: string) =>
+  rpc<{ ok: true; proposta_id: number }>('dash_ia_prompt_propor_conteudo', {
+    p_conteudo: conteudo,
+    p_alteracoes: trechos,
+    p_motivo: motivo ?? null,
+  });
