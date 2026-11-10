@@ -28,7 +28,7 @@ const navGroups = [
     itens: [
       { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
       { href: '/dashboard/handoffs', label: 'Transferências', icon: UserCheck },
-      { href: '/dashboard/transferencias-ramon', label: 'Transferência Atendimento', icon: PhoneForwarded },
+      { href: '/dashboard/atendimento-humano', label: 'Atendimento Humano', icon: PhoneForwarded },
       { href: '/dashboard/site', label: 'Site', icon: ExternalLink },
     ],
   },
