@@ -50,3 +50,38 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Barra de rolagem fina e discreta, no tom do sistema */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(161 161 170 / 0.55) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(161 161 170 / 0.55);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(113 113 122 / 0.8);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* Menu lateral escuro */
+.scroll-escuro {
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+}
+.scroll-escuro::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.18);
+}
+.scroll-escuro::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.32);
+}

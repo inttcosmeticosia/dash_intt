@@ -14,7 +14,6 @@ import {
   Menu,
   MessageSquare,
   Package,
-  PhoneForwarded,
   UserCheck,
   X,
 } from 'lucide-react';
@@ -29,9 +28,8 @@ const navGroups = [
     itens: [
       { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
       { href: '/dashboard/reclamacoes', label: 'Reclamações e Suporte', icon: AlertTriangle },
-      { href: '/dashboard/handoffs', label: 'Transferências', icon: UserCheck },
-      { href: '/dashboard/transferencias-ramon', label: 'Transferência Atendimento', icon: PhoneForwarded },
-      { href: '/dashboard/site', label: 'Site', icon: ExternalLink },
+      { href: '/dashboard/handoffs', label: 'Representantes', icon: UserCheck },
+      { href: '/dashboard/site', label: 'Enviados ao Site', icon: ExternalLink },
     ],
   },
   {
@@ -67,7 +65,7 @@ function SidebarNav({
         <Image src="/logo-intt-letra-amarela.webp" alt="INTT Cosméticos" width={110} height={80} priority />
         <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-zinc-500">Analytics</span>
       </div>
-      <nav className="flex-1 overflow-y-auto p-3">
+      <nav className="scroll-escuro flex-1 overflow-y-auto p-3">
         {navGroups.map((g) => (
           <div key={g.titulo} className="pb-3">
             <p className="px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-600">{g.titulo}</p>
@@ -143,7 +141,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto bg-[#1d1d1d] md:flex">
+        <aside className="sticky top-0 hidden scroll-escuro h-dvh w-60 shrink-0 flex-col overflow-y-auto bg-[#1d1d1d] md:flex">
           <SidebarNav pathname={pathname} onLogout={handleLogout} />
         </aside>
 

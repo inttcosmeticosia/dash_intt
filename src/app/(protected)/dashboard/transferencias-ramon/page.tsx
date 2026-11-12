@@ -1,7 +1,6 @@
-import { TransferenciasView } from '@/components/TransferenciasView';
+import { redirect } from 'next/navigation';
 
-// Transferências feitas pelo atendimento humano (operador Bitrix passou o contato do representante).
-// Fonte: handoff_events source='humano', gravado pelo n8n [03] via registrar_mensagem_humana.
+// Antiga aba "Transferência Atendimento": agora é a aba "Pelo atendimento" da página Representantes.
 export default function TransferenciasAtendimentoPage() {
-  return <TransferenciasView origemFixa="humano" />;
+  redirect('/dashboard/handoffs?origem=humano');
 }

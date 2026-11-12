@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import { KpiCardNumber } from '@/components/KpiCard';
+import { PaginaIntro } from '@/components/PaginaIntro';
 import { DataTable } from '@/components/charts';
 import { ResumoCell } from '@/components/ResumoCell';
 import { useFilters } from '@/contexts/FilterContext';
@@ -63,6 +64,15 @@ export default function SitePage() {
 
   return (
     <div className="space-y-6">
+      <PaginaIntro
+        veja={[
+          { href: '/dashboard/handoffs', label: 'Representantes' },
+          { href: '/dashboard/reclamacoes', label: 'Reclamações e Suporte' },
+        ]}
+      >
+        Clientes de <b>uso próprio</b> (consumidor final) que a Cris mandou comprar direto no <b>site</b>. Não passam por
+        representante nem por atendente.
+      </PaginaIntro>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCardNumber label="Passaram pelo Site" value={linhas.length} />
       </div>

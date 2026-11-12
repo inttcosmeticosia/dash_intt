@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import { KpiCard, KpiCardNumber } from '@/components/KpiCard';
 import { BarChartCard, DataTable, SERIES } from '@/components/charts';
+import { PaginaIntro } from '@/components/PaginaIntro';
 import { ResumoCell } from '@/components/ResumoCell';
 import { useFilters } from '@/contexts/FilterContext';
 import { cleanResumo, downloadCsv, formatDateTime, formatPhone, normalizeName } from '@/lib/utils';
@@ -23,6 +24,15 @@ const ORIGEM_LABEL: Record<string, string> = {
 };
 
 const temOrigem = (l: TransferenciaRow, o: OrigemTransferencia) => l.origem.split('+').includes(o);
+
+// Encaminhamento da IA para o Suporte não é transferência para representante: fica em "Reclamações e Suporte".
+const ehSuporte = (l: TransferenciaRow) => l.origem === 'ia' && /^suporte/i.test(l.destino ?? '');
+
+const ABAS: { valor: '' | OrigemTransferencia; label: string }[] = [
+  { valor: '', label: 'Todos' },
+  { valor: 'ia', label: 'Pela IA' },
+  { valor: 'humano', label: 'Pelo atendimento' },
+];
 
 // tipo_cliente vem como "Lojista · formulário" | "Revenda · atendente" | "Consumidor Final · IA".
 const tipoBase = (t: string | null | undefined) => t?.split(' · ')[0] ?? null;
@@ -68,21 +78,21 @@ function contarPor(linhas: TransferenciaRow[], campo: (l: TransferenciaRow) => s
 }
 
 type Props = {
-  /** Fixa a origem (ex.: aba "Transferência Atendimento" = 'humano'); sem ela a página mostra o filtro. */
-  origemFixa?: OrigemTransferencia;
+  /** Aba aberta ao entrar (ex.: ?origem=humano vindo do link antigo "Transferência Atendimento"). */
+  origemInicial?: '' | OrigemTransferencia;
 };
 
-export function TransferenciasView({ origemFixa }: Props) {
+export function TransferenciasView({ origemInicial = '' }: Props) {
   const { periodo } = useFilters();
   const [linhas, setLinhas] = useState<TransferenciaRow[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
-  const [origemFiltro, setOrigemFiltro] = useState<'' | OrigemTransferencia>('');
+  const [origemFiltro, setOrigemFiltro] = useState<'' | OrigemTransferencia>(origemInicial);
   const [destinoFiltro, setDestinoFiltro] = useState('');
 
   useEffect(() => {
     let ativo = true;
-    getRelatorioTransferencias(periodo, origemFixa ?? null)
+    getRelatorioTransferencias(periodo, null)
       .then((r) => {
         if (!ativo) return;
         setLinhas(r);
@@ -95,9 +105,9 @@ export function TransferenciasView({ origemFixa }: Props) {
     return () => {
       ativo = false;
     };
-  }, [periodo, origemFixa]);
+  }, [periodo]);
 
-  const todas = useMemo(() => linhas ?? [], [linhas]);
+  const todas = useMemo(() => (linhas ?? []).filter((l) => !ehSuporte(l)), [linhas]);
 
   // Base dos KPIs/gráficos: respeita o filtro de origem, ignora busca/destino.
   const base = useMemo(
@@ -130,7 +140,7 @@ export function TransferenciasView({ origemFixa }: Props) {
 
   function exportar() {
     downloadCsv(
-      `transferencias${origemFixa ? `_${origemFixa}` : ''}_${periodo.inicio}_${periodo.fim}.csv`,
+      `representantes${origemFiltro ? `_${origemFiltro}` : ''}_${periodo.inicio}_${periodo.fim}.csv`,
       ['Data', 'Origem', 'Cliente', 'Razão Social', 'Telefone Cliente', 'Destino', 'Telefone Representante',
         'Região', 'Tipo Cliente', 'País', 'Motivo', 'Mensagem', 'Resumo'],
       filtradas.map((l) => [
@@ -153,9 +163,38 @@ export function TransferenciasView({ origemFixa }: Props) {
 
   return (
     <div className="space-y-6">
+      <PaginaIntro
+        veja={[
+          { href: '/dashboard/reclamacoes', label: 'Reclamações e Suporte' },
+          { href: '/dashboard/site', label: 'Enviados ao Site' },
+        ]}
+      >
+        Clientes de <b>revenda</b> que receberam o contato de um <b>representante comercial</b> (ou foram para a equipe
+        comercial no Bitrix). <b>Pela IA</b> = a Cris passou o contato; <b>Pelo atendimento</b> = um atendente passou.
+        Reclamações e pedidos de suporte <b>não entram aqui</b>.
+      </PaginaIntro>
+
+      <div className="flex flex-wrap gap-1 rounded-xl border border-zinc-200 bg-white p-1 text-sm sm:w-fit">
+        {ABAS.map((a) => {
+          const n = a.valor ? todas.filter((l) => temOrigem(l, a.valor as OrigemTransferencia)).length : todas.length;
+          return (
+            <button
+              key={a.label}
+              type="button"
+              onClick={() => setOrigemFiltro(a.valor)}
+              className={`flex-1 rounded-lg px-4 py-1.5 font-medium transition-colors sm:flex-none ${
+                origemFiltro === a.valor ? 'bg-brand-600 text-white shadow-sm' : 'text-zinc-600 hover:bg-zinc-100'
+              }`}
+            >
+              {a.label} <span className="opacity-70">({n})</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCardNumber label="Clientes Transferidos" value={base.length} />
-        {origemFixa === 'humano' ? (
+        <KpiCardNumber label="Clientes Encaminhados" value={base.length} />
+        {origemFiltro === 'humano' ? (
           <KpiCardNumber label="Com Representante Identificado" value={comRepresentante} />
         ) : (
           <KpiCard
@@ -170,7 +209,7 @@ export function TransferenciasView({ origemFixa }: Props) {
 
       <div className="grid items-start gap-6 xl:grid-cols-2">
         <BarChartCard
-          title="Transferências por Destino (top 10)"
+          title="Por Representante (top 10)"
           data={porDestino.slice(0, 10)}
           xKey="nome"
           bars={[{ key: 'total', color: SERIES.transferidos, name: 'Clientes' }]}
@@ -178,7 +217,7 @@ export function TransferenciasView({ origemFixa }: Props) {
           yWidth={170}
         />
         <BarChartCard
-          title="Transferências por Região (top 10)"
+          title="Por Região (top 10)"
           data={porRegiao.slice(0, 10)}
           xKey="nome"
           bars={[{ key: 'total', color: SERIES.novos, name: 'Clientes' }]}
@@ -213,17 +252,6 @@ export function TransferenciasView({ origemFixa }: Props) {
             className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm"
           />
         </div>
-        {!origemFixa && (
-          <select
-            value={origemFiltro}
-            onChange={(e) => setOrigemFiltro(e.target.value as '' | OrigemTransferencia)}
-            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm"
-          >
-            <option value="">Todas as origens</option>
-            <option value="ia">IA</option>
-            <option value="humano">Atendimento humano</option>
-          </select>
-        )}
         <select
           value={destinoFiltro}
           onChange={(e) => setDestinoFiltro(e.target.value)}
@@ -239,7 +267,7 @@ export function TransferenciasView({ origemFixa }: Props) {
       </div>
 
       <DataTable
-        title={`Transferências (${filtradas.length}${filtradas.length !== base.length ? ` de ${base.length}` : ''})`}
+        title={`Encaminhamentos (${filtradas.length}${filtradas.length !== base.length ? ` de ${base.length}` : ''})`}
         pageSize={15}
         actions={
           <button
@@ -252,7 +280,7 @@ export function TransferenciasView({ origemFixa }: Props) {
         }
         columns={[
           { key: 'data_handoff', label: 'Data', format: (v) => formatDateTime(String(v)) },
-          ...(origemFixa ? [] : [{ key: 'origem', label: 'Origem', format: (v: unknown) => ORIGEM_LABEL[String(v)] ?? String(v) }]),
+          ...(origemFiltro ? [] : [{ key: 'origem', label: 'Origem', format: (v: unknown) => ORIGEM_LABEL[String(v)] ?? String(v) }]),
           { key: 'nome_cliente', label: 'Cliente' },
           ...(temEmpresa ? [{ key: 'razao_social', label: 'Empresa' }] : []),
           { key: 'telefone_cliente', label: 'Telefone', format: (v) => formatPhone(v as string) },
@@ -260,7 +288,7 @@ export function TransferenciasView({ origemFixa }: Props) {
           { key: 'telefone_representante', label: 'Tel. Representante', format: (v) => (v ? formatPhone(v as string) : '—') },
           { key: 'regiao', label: 'Região' },
           { key: 'tipo_cliente', label: 'Tipo', format: (v) => <TipoCell value={v} /> },
-          origemFixa === 'humano'
+          origemFiltro === 'humano'
             ? { key: 'mensagem', label: 'Mensagem', format: (v) => <ResumoCell value={v} /> }
             : { key: 'resumo', label: 'Resumo', format: (v) => <ResumoCell value={v} /> },
         ]}

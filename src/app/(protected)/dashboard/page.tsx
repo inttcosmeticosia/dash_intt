@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertaSuporte } from '@/components/AlertaSuporte';
 import { KpiCard, KpiCardNumber } from '@/components/KpiCard';
+import { ParaOndeForam } from '@/components/ParaOndeForam';
 import { BarChartCard, LineChartCard, SERIES } from '@/components/charts';
 import { useFilters } from '@/contexts/FilterContext';
 import { formatChartDate } from '@/lib/utils';
@@ -10,7 +11,9 @@ import {
   getAtendimentosDiarios,
   getAtendimentosSemanais,
   getMetricasAtendimento,
+  getRelatorioSite,
   getRelatorioSuporte,
+  getRelatorioTransferencias,
   type AtendimentoDiario,
   type AtendimentoSemanal,
   type MetricasAtendimento,
@@ -28,12 +31,24 @@ export default function DashboardPage() {
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [suporte, setSuporte] = useState<SuporteRow[]>([]);
+  const [destinos, setDestinos] = useState<{ representantes: number | null; site: number | null }>({
+    representantes: null,
+    site: null,
+  });
 
-  // Alerta de reclamações: carrega à parte para não travar a visão geral se falhar.
+  // Alerta de reclamações e "para onde foram": carregam à parte para não travar a visão geral se falharem.
   useEffect(() => {
     let ativo = true;
     getRelatorioSuporte(periodo)
       .then((r) => ativo && setSuporte(r))
+      .catch((e) => console.error(e));
+    Promise.all([getRelatorioTransferencias(periodo, null), getRelatorioSite(periodo)])
+      .then(([t, s]) => {
+        if (!ativo) return;
+        // Mesma regra da página Representantes: encaminhamento da IA ao Suporte não conta.
+        const reps = t.filter((l) => !(l.origem === 'ia' && /^suporte/i.test(l.destino ?? '')));
+        setDestinos({ representantes: reps.length, site: s.length });
+      })
       .catch((e) => console.error(e));
     return () => {
       ativo = false;
@@ -108,6 +123,8 @@ export default function DashboardPage() {
         <KpiCardNumber label="Internacionais" value={Number(metricas?.internacionais ?? 0)} />
       </div>
 
+      <ParaOndeForam representantes={destinos.representantes} suporte={suporte.length} site={destinos.site} />
+
       <LineChartCard
         title="Atendimentos por Dia"
         description="Novas conversas abertas e conversas ativas (com mensagem) em cada dia do período."
@@ -122,7 +139,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <BarChartCard
           title="Handoffs por Dia"
-          description="Quantidade de conversas transferidas para um representante comercial em cada dia."
+          description="Conversas que a IA ou o atendimento encaminharam (representante ou suporte) em cada dia."
           data={chartDiario}
           xKey="dia"
           bars={[{ key: 'transferidos', color: SERIES.transferidos, name: 'Transferidos' }]}
@@ -131,7 +148,7 @@ export default function DashboardPage() {
 
         <BarChartCard
           title="Comparativo por Semana"
-          description="Novos: conversas abertas na semana. Ativos: conversas com mensagem no período. Handoffs: transferidas para representante. Semana começa na segunda."
+          description="Novos: conversas abertas na semana. Ativos: conversas com mensagem no período. Handoffs: encaminhadas para representante ou suporte. Semana começa na segunda."
           data={chartSemanal}
           xKey="semana"
           bars={[
