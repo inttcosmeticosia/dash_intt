@@ -58,15 +58,22 @@ export type TransferenciaRow = {
   mensagem: string | null;
 };
 
+// Uma linha por cliente/site/dia em que a IA mandou o link do site (registrado a partir de 12/11/2026).
 export type SiteRow = {
   data: string;
   nome_cliente: string | null;
+  nome_fonte: 'cliente' | 'whatsapp' | null;
   telefone: string;
+  site: 'compreintt' | 'lojaintt';
   regiao: string | null;
   cidade: string | null;
   tipo_cliente: string | null;
   resumo: string | null;
+  mensagem: string | null;
 };
+
+/** Dia em que o registro dos links de site começou. */
+export const INICIO_REGISTRO_SITE = '2026-11-12';
 
 export type ConversaInternacional = {
   data: string;
@@ -142,7 +149,7 @@ export async function getRelatorioInternacional(periodo: PeriodFilter): Promise<
 
 export async function getRelatorioSite(periodo: PeriodFilter): Promise<SiteRow[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc('relatorio_site', {
+  const { data, error } = await supabase.rpc('relatorio_site_ia', {
     p_inicio: periodo.inicio,
     p_fim: periodo.fim,
   });
@@ -254,6 +261,8 @@ export type SuporteRow = {
   id: number;
   data: string;
   nome_cliente: string | null;
+  /** 'cliente' = nome dito na conversa; 'whatsapp' = só o nome do perfil */
+  nome_fonte: 'cliente' | 'whatsapp' | null;
   telefone: string;
   regiao: string | null;
   tipo_cliente: string | null;
@@ -272,7 +281,7 @@ export type SuporteRow = {
 
 export async function getRelatorioSuporte(periodo: PeriodFilter): Promise<SuporteRow[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc('relatorio_suporte_ia', {
+  const { data, error } = await supabase.rpc('relatorio_suporte_v2', {
     p_inicio: periodo.inicio,
     p_fim: periodo.fim,
   });

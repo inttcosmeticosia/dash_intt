@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, ChevronDown, Clock, Download, ExternalLink, Hash, Search } from 'lucide-react';
 import { AlertaSuporte } from '@/components/AlertaSuporte';
 import { PaginaIntro } from '@/components/PaginaIntro';
+import { ClienteCell } from '@/components/ui/ClienteCell';
 import { useFilters } from '@/contexts/FilterContext';
-import { cn, downloadCsv, formatDateTime, formatPhone } from '@/lib/utils';
+import { cn, downloadCsv, formatDateTime } from '@/lib/utils';
 import {
   URGENCIA_BARRA,
   URGENCIA_ESTILO,
@@ -40,9 +41,8 @@ function Linha({ l, aberta, onToggle }: { l: SuporteRow; aberta: boolean; onTogg
         aria-expanded={aberta}
         className="grid w-full gap-x-4 gap-y-2 py-3.5 pl-5 pr-4 text-left transition-colors hover:bg-zinc-50 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] sm:items-center"
       >
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-zinc-900">{l.nome_cliente ?? 'Sem nome'}</p>
-          <p className="truncate text-xs text-zinc-500">{formatPhone(l.telefone)}</p>
+        <div className="min-w-0 text-sm">
+          <ClienteCell nome={l.nome_cliente} telefone={l.telefone} fonte={l.nome_fonte} />
         </div>
 
         <div className="min-w-0">

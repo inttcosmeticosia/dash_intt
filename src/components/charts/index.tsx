@@ -276,9 +276,12 @@ export function DataTable({
   rows,
   pageSize,
   actions,
+  bare = false,
 }: {
+  /** bare: sem cartão nem cabeçalho (para usar dentro de um Painel) */
+  bare?: boolean;
   title: string;
-  columns: { key: string; label: string; format?: (v: unknown) => ReactNode }[];
+  columns: { key: string; label: string; format?: (v: unknown, row: Record<string, unknown>) => ReactNode }[];
   rows: Record<string, unknown>[];
   pageSize?: number;
   actions?: ReactNode;
@@ -292,17 +295,19 @@ export function DataTable({
   const fim = pageSize ? Math.min((currentPage + 1) * pageSize, rows.length) : rows.length;
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3">
-        <h3 className="text-sm font-semibold text-zinc-700">{title}</h3>
-        {actions}
-      </div>
+    <div className={bare ? '' : 'rounded-xl border border-zinc-200 bg-white shadow-sm'}>
+      {!bare && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-3.5">
+          <h3 className="text-sm font-semibold text-zinc-800">{title}</h3>
+          {actions}
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-100 text-left text-xs text-zinc-500">
+            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-left text-[11px] uppercase tracking-wide text-zinc-500">
               {columns.map((c) => (
-                <th key={c.key} className="px-5 py-2 font-medium">{c.label}</th>
+                <th key={c.key} className="whitespace-nowrap px-4 py-2.5 font-semibold first:pl-5">{c.label}</th>
               ))}
             </tr>
           </thead>
@@ -311,10 +316,10 @@ export function DataTable({
               <tr><td colSpan={columns.length} className="px-5 py-8 text-center text-zinc-400">Sem dados</td></tr>
             ) : (
               visible.map((row, i) => (
-                <tr key={i} className="border-b border-zinc-50 hover:bg-brand-50/60:bg-zinc-800/30">
+                <tr key={i} className="border-b border-zinc-100 align-top transition-colors last:border-0 hover:bg-zinc-50/80">
                   {columns.map((c) => (
-                    <td key={c.key} className="px-5 py-2.5 text-zinc-700">
-                      {c.format ? c.format(row[c.key]) : String(row[c.key] ?? '—')}
+                    <td key={c.key} className="px-4 py-3 text-zinc-700 first:pl-5">
+                      {c.format ? c.format(row[c.key], row) : String(row[c.key] ?? '—')}
                     </td>
                   ))}
                 </tr>
