@@ -19,7 +19,7 @@ import {
   ordenarSuporte,
   tempoTexto,
 } from '@/lib/suporte';
-import { getRelatorioSuporte, type SuporteRow, type Urgencia } from '@/services/analytics';
+import { getLinksBitrix, getRelatorioSuporte, type SuporteRow, type Urgencia } from '@/services/analytics';
 
 // Tudo que a IA passou para o suporte humano: reclamação, atraso, defeito, rastreio, checkout, cadastro.
 // Urgência: Alta = atraso, defeito, reação ou menção a Procon/cancelar; Média = reclamação e rastreio; Baixa = resto.
@@ -28,7 +28,7 @@ type Aba = 'todos' | 'aguardando' | 'respondidos';
 
 const textoLimpo = (s: string | null) => (s ?? '').replace(/\\n/g, '\n').trim();
 
-function Linha({ l, aberta, onToggle }: { l: SuporteRow; aberta: boolean; onToggle: () => void }) {
+function Linha({ l, aberta, onToggle, dialogId }: { l: SuporteRow; aberta: boolean; onToggle: () => void; dialogId?: string }) {
   const espera = horasDesde(l.data);
   const tempoResposta = l.primeira_resposta_at ? espera - horasDesde(l.primeira_resposta_at) : null;
 
@@ -89,12 +89,12 @@ function Linha({ l, aberta, onToggle }: { l: SuporteRow; aberta: boolean; onTogg
             {l.regiao && <span>{l.regiao}</span>}
             {l.tipo_cliente && <span>{l.tipo_cliente.split(' · ')[0]}</span>}
             <a
-              href={linkBitrix(l.telefone)}
+              href={linkBitrix(l.telefone, dialogId)}
               target="_blank"
               rel="noopener noreferrer"
               className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
             >
-              Abrir no Bitrix <ExternalLink className="h-3.5 w-3.5" />
+              {dialogId ? 'Abrir conversa no Bitrix' : 'Buscar no Bitrix'} <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -168,6 +168,7 @@ export default function ReclamacoesPage() {
   const [urgencias, setUrgencias] = useState<Urgencia[]>([]);
   const [categoria, setCategoria] = useState('');
   const [aberta, setAberta] = useState<number | null>(null);
+  const [links, setLinks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let ativo = true;
@@ -176,6 +177,10 @@ export default function ReclamacoesPage() {
         if (!ativo) return;
         setLinhas(r);
         setErro(null);
+        // Link direto do chat: opcional, não trava a página se falhar.
+        getLinksBitrix(r.map((l) => l.telefone))
+          .then((m) => ativo && setLinks(m))
+          .catch((e) => console.error(e));
       })
       .catch((e) => {
         console.error(e);
@@ -332,7 +337,7 @@ export default function ReclamacoesPage() {
         ) : (
           <ul className="divide-y divide-zinc-100">
             {filtradas.map((l) => (
-              <Linha key={l.id} l={l} aberta={aberta === l.id} onToggle={() => setAberta(aberta === l.id ? null : l.id)} />
+              <Linha key={l.id} l={l} dialogId={links[l.telefone]} aberta={aberta === l.id} onToggle={() => setAberta(aberta === l.id ? null : l.id)} />
             ))}
           </ul>
         )}

@@ -288,3 +288,14 @@ export async function getRelatorioSuporte(periodo: PeriodFilter): Promise<Suport
   if (error) throw error;
   return (data ?? []) as SuporteRow[];
 }
+
+/** Chat do Bitrix por telefone (gravado pelo n8n [5] a partir de 12/11/2026). Chave = telefone pedido. */
+export async function getLinksBitrix(telefones: string[]): Promise<Record<string, string>> {
+  if (!telefones.length) return {};
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('links_bitrix', { p_phones: [...new Set(telefones)] });
+  if (error) throw error;
+  const mapa: Record<string, string> = {};
+  for (const r of (data ?? []) as { phone: string; dialog_id: string }[]) mapa[r.phone] = r.dialog_id;
+  return mapa;
+}

@@ -2,8 +2,9 @@ import type { SuporteRow, Urgencia } from '@/services/analytics';
 
 export const BITRIX_URL = 'https://inttcosmeticos.bitrix24.com.br';
 
-/** Link para achar o cliente no CRM do Bitrix (busca pelo telefone; de lá abre o chat). */
-export function linkBitrix(telefone: string) {
+/** Abre o chat direto no Bitrix quando já temos o ID; senão, busca o cliente no CRM pelo telefone. */
+export function linkBitrix(telefone: string, dialogId?: string | null) {
+  if (dialogId) return `${BITRIX_URL}/online/?IM_DIALOG=${encodeURIComponent(dialogId)}`;
   return `${BITRIX_URL}/crm/contact/list/?apply_filter=Y&FIND=${encodeURIComponent(telefone)}`;
 }
 
