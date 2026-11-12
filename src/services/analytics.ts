@@ -245,3 +245,37 @@ export async function signOut() {
   const supabase = createClient();
   await supabase.auth.signOut();
 }
+
+// Atendimentos que a IA passou para o suporte humano (reclamação, atraso, defeito, checkout, cadastro).
+// Fonte: handoff_events (IA) + human_messages (o que o atendimento respondeu depois) via RPC relatorio_suporte_ia.
+export type Urgencia = 'alta' | 'media' | 'baixa';
+
+export type SuporteRow = {
+  id: number;
+  data: string;
+  nome_cliente: string | null;
+  telefone: string;
+  regiao: string | null;
+  tipo_cliente: string | null;
+  motivo: string | null;
+  categoria: string;
+  urgencia: Urgencia;
+  numero_pedido: string | null;
+  resumo: string | null;
+  respondido: boolean;
+  primeira_resposta_at: string | null;
+  acao_atendimento: string | null;
+  resposta_atendimento: string | null;
+  ultima_resposta_at: string | null;
+  qtd_respostas: number;
+};
+
+export async function getRelatorioSuporte(periodo: PeriodFilter): Promise<SuporteRow[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc('relatorio_suporte_ia', {
+    p_inicio: periodo.inicio,
+    p_fim: periodo.fim,
+  });
+  if (error) throw error;
+  return (data ?? []) as SuporteRow[];
+}

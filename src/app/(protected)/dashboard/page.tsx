@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AlertaSuporte } from '@/components/AlertaSuporte';
 import { KpiCard, KpiCardNumber } from '@/components/KpiCard';
 import { BarChartCard, LineChartCard, SERIES } from '@/components/charts';
 import { useFilters } from '@/contexts/FilterContext';
@@ -9,9 +10,11 @@ import {
   getAtendimentosDiarios,
   getAtendimentosSemanais,
   getMetricasAtendimento,
+  getRelatorioSuporte,
   type AtendimentoDiario,
   type AtendimentoSemanal,
   type MetricasAtendimento,
+  type SuporteRow,
 } from '@/services/analytics';
 
 type Dados = {
@@ -24,6 +27,18 @@ export default function DashboardPage() {
   const { periodo } = useFilters();
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [suporte, setSuporte] = useState<SuporteRow[]>([]);
+
+  // Alerta de reclamações: carrega à parte para não travar a visão geral se falhar.
+  useEffect(() => {
+    let ativo = true;
+    getRelatorioSuporte(periodo)
+      .then((r) => ativo && setSuporte(r))
+      .catch((e) => console.error(e));
+    return () => {
+      ativo = false;
+    };
+  }, [periodo]);
 
   useEffect(() => {
     let ativo = true;
@@ -68,6 +83,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <AlertaSuporte linhas={suporte} comLink />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Novos Atendimentos"

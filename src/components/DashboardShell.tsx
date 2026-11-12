@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   Bot,
   ExternalLink,
   Globe,
@@ -27,6 +28,7 @@ const navGroups = [
     titulo: 'Atendimento',
     itens: [
       { href: '/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+      { href: '/dashboard/reclamacoes', label: 'Reclamações e Suporte', icon: AlertTriangle },
       { href: '/dashboard/handoffs', label: 'Transferências', icon: UserCheck },
       { href: '/dashboard/transferencias-ramon', label: 'Transferência Atendimento', icon: PhoneForwarded },
       { href: '/dashboard/site', label: 'Site', icon: ExternalLink },
